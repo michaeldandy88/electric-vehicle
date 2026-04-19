@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Dataset Management</title>
+    <!-- Add Bootstrap and FontAwesome -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Google Fonts for typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-bg: #f8fafc;
+            --sidebar-grad1: #0f172a;
+            --sidebar-grad2: #1e293b;
+            --accent-color: #3b82f6;
+            --accent-hover: #2563eb;
+            --text-main: #334155;
+            --card-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+        }
+        
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--primary-bg);
+            color: var(--text-main);
+            overflow-x: hidden;
+        }
+
+        /* Sidebar Styling */
+        .sidebar {
+            width: 250px;
+            background: linear-gradient(180deg, var(--sidebar-grad1) 0%, var(--sidebar-grad2) 100%);
+            height: 100vh;
+            position: fixed;
+            color: white;
+            padding-top: 30px;
+            z-index: 1000;
+            box-shadow: 4px 0 20px rgba(0,0,0,0.1);
+        }
+        .sidebar-brand {
+            padding: 0 25px 30px;
+            font-size: 22px;
+            font-weight: 700;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .sidebar .nav-link {
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 8px;
+            padding: 12px 25px;
+            border-radius: 0 25px 25px 0;
+            margin-right: 20px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            background-color: var(--accent-color);
+            color: white;
+            font-weight: 500;
+            transform: translateX(5px);
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: 250px;
+            padding: 40px;
+            min-height: 100vh;
+        }
+        
+        .top-header {
+            margin-bottom: 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .page-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: #0f172a;
+            margin: 0;
+        }
+
+        /* Stats Cards */
+        .stat-card {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: var(--card-shadow);
+            border: none;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 5px;
+            height: 100%;
+            background-color: var(--accent-color);
+            border-radius: 20px 0 0 20px;
+        }
+        .stat-card.motor-card::before {
+            background-color: #10b981;
+        }
+        .stat-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+        }
+        .stat-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin-bottom: 15px;
+        }
+        .car-icon { background: #eff6ff; color: #3b82f6; }
+        .motor-icon { background: #ecfdf5; color: #10b981; }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 5px;
+            color: #0f172a;
+        }
+        .stat-label {
+            color: #64748b;
+            font-size: 15px;
+            font-weight: 500;
+        }
+
+        /* Main Form Area */
+        .upload-section {
+            background: white;
+            border-radius: 20px;
+            padding: 35px;
+            box-shadow: var(--card-shadow);
+            margin-top: 30px;
+        }
+        .upload-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 25px;
+            color: #0f172a;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .upload-area {
+            border: 2px dashed #cbd5e1;
+            border-radius: 15px;
+            padding: 50px 20px;
+            text-align: center;
+            background-color: #f8fafc;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+        }
+        .upload-area.dragover {
+            border-color: var(--accent-color);
+            background-color: #eff6ff;
+            transform: scale(1.02);
+        }
+        .upload-area:hover {
+            border-color: var(--accent-color);
+            background-color: #eff6ff;
+        }
+        .upload-icon {
+            font-size: 54px;
+            color: #94a3b8;
+            margin-bottom: 15px;
+            transition: color 0.3s ease;
+        }
+        .upload-area:hover .upload-icon {
+            color: var(--accent-color);
+        }
+        .file-input-wrapper input[type=file] {
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            cursor: pointer;
+            height: 100%;
+            width: 100%;
+        }
+        .dataset-select {
+            border-radius: 12px;
+            padding: 12px 15px;
+            border: 1px solid #cbd5e1;
+            font-weight: 500;
+            color: #475569;
+        }
+        .dataset-select:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+        }
+        .upload-btn {
+            background-color: var(--accent-color);
+            border: none;
+            border-radius: 12px;
+            padding: 12px 30px;
+            font-weight: 600;
+            color: white;
+            transition: background-color 0.3s eaes;
+            width: 100%;
+        }
+        .upload-btn:hover {
+            background-color: var(--accent-hover);
+        }
+
+        #file-name-display {
+            font-weight: 600;
+            color: var(--accent-color);
+            margin-top: 15px;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-brand">
+            <i class="fas fa-bolt text-warning"></i> EV-Admin
+        </div>
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a class="nav-link active" href="{% url 'dashboard_admin' %}">
+                    <i class="fas fa-tachometer-alt"></i> Dashboard
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'beranda' %}" target="_blank">
+                    <i class="fas fa-external-link-alt"></i> Ke Halaman Utama
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="top-header">
+            <h1 class="page-title">Dashboard Overview</h1>
+            <div class="d-flex align-items-center gap-3">
+                <div class="text-end">
+                    <div class="fw-bold fs-6">{{ request.user.username|default:"Admin"|title }}</div>
+                    <small class="text-muted">Manager</small>
+                </div>
+                <img src="https://ui-avatars.com/api/?name={{ request.user.username|default:'Admin' }}&background=0D8ABC&color=fff&rounded=true" alt="Admin" width="45">
+                <a href="{% url 'admin:logout' %}?next=/" class="btn btn-sm btn-outline-danger ms-2" title="Keluar">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+            </div>
+        </div>
+
+        <!-- Alert messages -->
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show shadow-sm border-0" role="alert" style="border-radius: 12px;">
+                    <i class="fas {% if message.tags == 'success' %}fa-check-circle text-success{% else %}fa-exclamation-circle text-danger{% endif %} me-2"></i>
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <!-- Stats Overview -->
+        <div class="row g-4">
+            <div class="col-md-6">
+                <div class="stat-card">
+                    <div class="stat-icon car-icon">
+                        <i class="fas fa-car-side"></i>
+                    </div>
+                    <div class="stat-value">{{ total_mobil }}</div>
+                    <div class="stat-label">Total Data Mobil Listrik (R4)</div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="stat-card motor-card">
+                    <div class="stat-icon motor-icon">
+                        <i class="fas fa-motorcycle"></i>
+                    </div>
+                    <div class="stat-value">{{ total_motor }}</div>
+                    <div class="stat-label">Total Data Motor Listrik (R2)</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Upload Section -->
+        <div class="row mt-2">
+            <div class="col-12">
+                <div class="upload-section">
+                    <div class="upload-title">
+                        <i class="fas fa-cloud-upload-alt text-primary"></i> Tambah / Update Dataset CSV
+                    </div>
+                    
+                    <form method="POST" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="row g-4">
+                            <div class="col-md-8">
+                                <div class="upload-area file-input-wrapper" id="drop-area">
+                                    <i class="fas fa-file-csv upload-icon"></i>
+                                    <h5 class="mb-2 fw-bold text-dark">Drag & Drop file CSV kesini</h5>
+                                    <p class="text-muted mb-0">atau klik untuk memilih file dari komputer</p>
+                                    <input type="file" name="csv_file" accept=".csv" id="csv-input" required>
+                                    <div id="file-name-display">
+                                        <i class="fas fa-check-circle me-1"></i> <span id="file-name-text"></span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 d-flex flex-column justify-content-between">
+                                <div>
+                                    <label class="form-label fw-bold mb-2">Pilih Jenis Kendaraan:</label>
+                                    <select name="jenis" class="form-select dataset-select mb-3" required>
+                                        <option value="" disabled selected>Pilih jenis dataset...</option>
+                                        <option value="mobil">🚗 Mobil Listrik (Dataset R4)</option>
+                                        <option value="motor">🏍️ Motor Listrik (Dataset R2)</option>
+                                    </select>
+                                    <div class="alert alert-info rounded-3 py-2 px-3 fs-7" style="font-size: 0.9em;">
+                                        <i class="fas fa-info-circle me-1"></i> Pastikan struktur kolom CSV sesuai format sistem untuk mencegah error parsing.
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn upload-btn mt-3">
+                                    <i class="fas fa-upload me-2"></i> Proses Dataset
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <!-- Database Tables Section -->
+        <div class="row mt-4 mb-5">
+            <div class="col-12">
+                
+                <!-- Nav Tabs for Mobil and Motor -->
+                <ul class="nav nav-tabs border-0 gap-2 mb-3" id="dataTabs" role="tablist">
+                  <li class="nav-item" role="presentation">
+                    <button class="nav-link active fw-bold border-0 bg-white shadow-sm rounded-top" id="mobil-tab" data-bs-toggle="tab" data-bs-target="#mobilData" type="button" role="tab"><i class="fas fa-car-side text-primary me-2"></i> Data Mobil (R4)</button>
+                  </li>
+                  <li class="nav-item" role="presentation">
+                    <button class="nav-link fw-bold border-0 bg-white shadow-sm rounded-top opacity-75" id="motor-tab" data-bs-toggle="tab" data-bs-target="#motorData" type="button" role="tab" onclick="$(this).removeClass('opacity-75');$('#mobil-tab').addClass('opacity-75')"><i class="fas fa-motorcycle text-primary me-2"></i> Data Motor (R2)</button>
+                  </li>
+                </ul>
+
+                <div class="tab-content bg-white p-4 rounded-3 shadow-sm border" id="dataTabsContent">
+                  
+                  <!-- Mobil Tab -->
+                  <div class="tab-pane fade show active" id="mobilData" role="tabpanel">
+                      <div class="table-responsive">
+                          <table class="table table-hover align-middle">
+                              <thead class="table-light">
+                                  <tr>
+                                      <th>ID</th>
+                                      <th>Gambar</th>
+                                      <th>Merek & Tipe</th>
+                                      <th>Harga</th>
+                                      <th>Jarak Tempuh</th>
+                                      <th width="120px">Aksi</th>
+                                  </tr>
+                              </thead>
+                              <tbody>
+                                  {% for item in mobil_list %}
+                                  <tr>
+                                      <td><div class="badge bg-secondary">#{{ item.id }}</div></td>
+                                      <td>
+                                          {% if item.gambar %}
+                                              <img src="{{ item.gambar.url }}" alt="{{ item.merek }}" style="width: 70px; height: 45px; object-fit: cover; border-radius: 6px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+                                          {% else %}
+                                              <div class="bg-light text-center rounded d-inline-block border" style="width: 70px; height: 45px; line-height: 45px;">
+                                                  <i class="fas fa-image text-muted opacity-50"></i>
+                                              </div>
+                                          {% endif %}
+                                      </td>
+                                      <td><strong>{{ item.merek }}</strong><br><small class="text-muted">{{ item.tipe_kendaraan|default:"-" }}</small></td>
+                                      <td class="fw-bold">Rp {{ item.harga|floatformat:0 }}</td>
+                                      <td><i class="fas fa-route text-success fs-7"></i> {{ item.jarak_tempuh }} km</td>
+                                      <td>
+                                          <button class="btn btn-sm btn-outline-warning" style="padding: 4px 8px;" title="Edit Data" data-val-id="{{ item.id }}" data-val-merek="{{ item.merek }}" data-val-harga="{{ item.harga }}" data-val-jarak="{{ item.jarak_tempuh }}" data-val-baterai="{{ item.kapasitas_baterai }}" data-val-penumpang="{{ item.kapasitas_penumpang }}" data-val-tipe="{{ item.tipe_kendaraan }}" data-val-fitur="{{ item.fitur_keselamatan }}" data-val-garansi="{{ item.garansi }}" data-val-jaringan="{{ item.jaringan_servis }}" onclick="openEditMobil(this)"><i class="fas fa-edit"></i></button>
+                                          <button class="btn btn-sm btn-outline-primary" style="padding: 4px 8px;" onclick="openImageModal('mobil', {{ item.id }}, '{{ item.merek }}')" title="Upload Gambar"><i class="fas fa-camera"></i></button>
+                                          <a href="{% url 'hapus_kendaraan' jenis='mobil' id=item.id %}" class="btn btn-sm btn-outline-danger" style="padding: 4px 8px;" onclick="return confirm('PERINGATAN: Yakin ingin menghapus secara permanen kendaraan {{ item.merek }}?')" title="Hapus Permanen"><i class="fas fa-trash"></i></a>
+                                      </td>
+                                  </tr>
+                                  {% empty %}
+                                  <tr><td colspan="6" class="text-center text-muted py-5"><i class="fas fa-folder-open fa-3x mb-3 text-secondary opacity-25"></i><br>Belum ada data set Mobil Listrik dalam database.</td></tr>
+                                  {% endfor %}
+                              </tbody>
+                          </table>
+                      </div>
+                  </div>
+
+                  <!-- Motor Tab -->
+                  <div class="tab-pane fade" id="motorData" role="tabpanel">
+                      <div class="table-responsive">
+                          <table class="table table-hover align-middle">
+                              <thead class="table-light">
+                                  <tr>
+                                      <th>ID</th>
+                                      <th>Gambar</th>
+                                      <th>Merek</th>
+                                      <th>Harga</th>
+                                      <th>Jarak Tempuh</th>
+                                      <th>Bat & Cas</th>
+                                      <th width="120px">Aksi</th>
+                                  </tr>
+                              </thead>
+                              <tbody>
+                                  {% for item in motor_list %}
+                                  <tr>
+                                      <td><div class="badge bg-secondary">#{{ item.id }}</div></td>
+                                      <td>
+                                          {% if item.gambar %}
+                                              <img src="{{ item.gambar.url }}" alt="{{ item.merek }}" style="width: 70px; height: 45px; object-fit: cover; border-radius: 6px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+                                          {% else %}
+                                              <div class="bg-light text-center rounded d-inline-block border" style="width: 70px; height: 45px; line-height: 45px;">
+                                                  <i class="fas fa-image text-muted opacity-50"></i>
+                                              </div>
+                                          {% endif %}
+                                      </td>
+                                      <td><strong>{{ item.merek }}</strong></td>
+                                      <td class="fw-bold">Rp {{ item.harga|floatformat:0 }}</td>
+                                      <td><i class="fas fa-route text-success fs-7"></i> {{ item.jarak_tempuh }} km</td>
+                                      <td><i class="fas fa-battery-three-quarters text-warning fs-7"></i> {{ item.jumlah_baterai }} Slot<br><small class="text-muted"><i class="fas fa-plug text-primary fs-7"></i> {{ item.waktu_pengisian }} Jam</small></td>
+                                      <td>
+                                          <button class="btn btn-sm btn-outline-warning" style="padding: 4px 8px;" title="Edit Data" data-val-id="{{ item.id }}" data-val-merek="{{ item.merek }}" data-val-harga="{{ item.harga }}" data-val-jarak="{{ item.jarak_tempuh }}" data-val-baterai="{{ item.kapasitas_baterai }}" data-val-kec="{{ item.kecepatan_maksimum }}" data-val-waktu="{{ item.waktu_pengisian }}" data-val-jumlah="{{ item.jumlah_baterai }}" onclick="openEditMotor(this)"><i class="fas fa-edit"></i></button>
+                                          <button class="btn btn-sm btn-outline-primary" style="padding: 4px 8px;" onclick="openImageModal('motor', {{ item.id }}, '{{ item.merek }}')" title="Upload Gambar"><i class="fas fa-camera"></i></button>
+                                          <a href="{% url 'hapus_kendaraan' jenis='motor' id=item.id %}" class="btn btn-sm btn-outline-danger" style="padding: 4px 8px;" onclick="return confirm('PERINGATAN: Yakin ingin menghapus secara permanen kendaraan {{ item.merek }}?')" title="Hapus Permanen"><i class="fas fa-trash"></i></a>
+                                      </td>
+                                  </tr>
+                                  {% empty %}
+                                  <tr><td colspan="7" class="text-center text-muted py-5"><i class="fas fa-folder-open fa-3x mb-3 text-secondary opacity-25"></i><br>Belum ada data set Motor Listrik dalam database.</td></tr>
+                                  {% endfor %}
+                              </tbody>
+                          </table>
+                      </div>
+                  </div>
+                  
+                </div>
+            </div>
+        </div>
+
+        <!-- Global Image Upload Modal -->
+        <div class="modal fade" id="imageUploadModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content border-0 shadow">
+                    <form method="POST" action="" enctype="multipart/form-data" id="imageUploadForm">
+                        {% csrf_token %}
+                        <div class="modal-header bg-light border-bottom-0">
+                            <h5 class="modal-title fw-bold"><i class="fas fa-images text-primary me-2"></i> Upload Gambar Kendaraan</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body py-4">
+                            <p class="text-muted">Target Upload: <strong id="modalKendaraanName" class="text-dark"></strong></p>
+                            <div class="mb-3">
+                                <label for="gambarInput" class="form-label fw-bold">Pilih File Baru</label>
+                                <input class="form-control" type="file" id="gambarInput" name="gambar" accept="image/png, image/jpeg, image/jpg, image/webp" required>
+                                <div class="form-text mt-2"><i class="fas fa-info-circle"></i> File (png/jpg) yang diunggah akan secara otomatis difilter dan dikonversi menjadi format <b>.webp</b> ringan oleh subsistem Python untuk menghemat beban <i>loading</i> halaman.</div>
+                            </div>
+                        </div>
+                        <div class="modal-footer border-top-0 bg-light">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batalkan</button>
+                            <button type="submit" class="btn btn-primary px-4"><i class="fas fa-cloud-upload-alt me-1"></i> Mulai Upload</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit Mobil Modal -->
+        <div class="modal fade" id="editMobilModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content border-0 shadow">
+                    <form method="POST" action="" id="editMobilForm">
+                        {% csrf_token %}
+                        <div class="modal-header bg-light border-bottom-0">
+                            <h5 class="modal-title fw-bold"><i class="fas fa-edit text-warning me-2"></i> Edit Data Mobil</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body py-4 row g-3">
+                            <div class="col-md-6 form-group">
+                                <label class="fw-bold">Merek / Nama Kendaraan</label>
+                                <input type="text" class="form-control" name="merek" id="edit-m-merek" required>
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label class="fw-bold">Harga (Rp)</label>
+                                <input type="number" step="any" class="form-control" name="harga" id="edit-m-harga" required>
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label class="fw-bold">Jarak Tempuh (km)</label>
+                                <input type="number" step="any" class="form-control" name="jarak_tempuh" id="edit-m-jarak" required>
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label class="fw-bold">Kapasitas Baterai (kWh)</label>
+                                <input type="number" step="any" class="form-control" name="kapasitas_baterai" id="edit-m-baterai" required>
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label class="fw-bold">Kapasitas Penumpang</label>
+                                <input type="number" class="form-control" name="kapasitas_penumpang" id="edit-m-penumpang" required>
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label class="fw-bold">Tipe Kendaraan</label>
+                                <input type="text" class="form-control" name="tipe_kendaraan" id="edit-m-tipe" required>
+                            </div>
+                            <div class="col-md-12 form-group">
+                                <label class="fw-bold">Fitur Keselamatan</label>
+                                <textarea class="form-control" name="fitur_keselamatan" id="edit-m-fitur" rows="2" required></textarea>
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label class="fw-bold">Garansi</label>
+                                <input type="text" class="form-control" name="garansi" id="edit-m-garansi" required>
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label class="fw-bold">Jaringan Servis</label>
+                                <input type="text" class="form-control" name="jaringan_servis" id="edit-m-jaringan" required>
+                            </div>
+                        </div>
+                        <div class="modal-footer border-top-0 bg-light">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batalkan</button>
+                            <button type="submit" class="btn btn-warning"><i class="fas fa-save me-1"></i> Simpan Perubahan</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit Motor Modal -->
+        <div class="modal fade" id="editMotorModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content border-0 shadow">
+                    <form method="POST" action="" id="editMotorForm">
+                        {% csrf_token %}
+                        <div class="modal-header bg-light border-bottom-0">
+                            <h5 class="modal-title fw-bold"><i class="fas fa-edit text-warning me-2"></i> Edit Data Motor</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body py-4 row g-3">
+                            <div class="col-md-6 form-group">
+                                <label class="fw-bold">Merek / Nama Motor</label>
+                                <input type="text" class="form-control" name="merek" id="edit-mt-merek" required>
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label class="fw-bold">Harga (Rp)</label>
+                                <input type="number" step="any" class="form-control" name="harga" id="edit-mt-harga" required>
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label class="fw-bold">Jarak Tempuh (km)</label>
+                                <input type="number" step="any" class="form-control" name="jarak_tempuh" id="edit-mt-jarak" required>
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label class="fw-bold">Kapasitas Baterai (kWh)</label>
+                                <input type="number" step="any" class="form-control" name="kapasitas_baterai" id="edit-mt-baterai" required>
+                            </div>
+                            <div class="col-md-4 form-group">
+                                <label class="fw-bold">Kecepatan Max (km/jam)</label>
+                                <input type="number" step="any" class="form-control" name="kecepatan_maksimum" id="edit-mt-kec" required>
+                            </div>
+                            <div class="col-md-4 form-group">
+                                <label class="fw-bold">Waktu Pengecasan (Jam)</label>
+                                <input type="number" step="any" class="form-control" name="waktu_pengisian" id="edit-mt-waktu" required>
+                            </div>
+                            <div class="col-md-4 form-group">
+                                <label class="fw-bold">Jumlah Baterai (Slot)</label>
+                                <input type="number" class="form-control" name="jumlah_baterai" id="edit-mt-jumlah" required>
+                            </div>
+                        </div>
+                        <div class="modal-footer border-top-0 bg-light">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batalkan</button>
+                            <button type="submit" class="btn btn-warning"><i class="fas fa-save me-1"></i> Simpan Perubahan</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Modal Upload logic
+        function openImageModal(jenis, id, nama) {
+            document.getElementById('modalKendaraanName').innerText = nama;
+            document.getElementById('imageUploadForm').action = `/admin-dashboard/update-gambar/${jenis}/${id}/`;
+            var myModal = new bootstrap.Modal(document.getElementById('imageUploadModal'));
+            myModal.show();
+        }
+
+        function openEditMobil(btn) {
+            document.getElementById('editMobilForm').action = `/admin-dashboard/update-data/mobil/${btn.getAttribute('data-val-id')}/`;
+            document.getElementById('edit-m-merek').value = btn.getAttribute('data-val-merek');
+            document.getElementById('edit-m-harga').value = btn.getAttribute('data-val-harga');
+            document.getElementById('edit-m-jarak').value = btn.getAttribute('data-val-jarak');
+            document.getElementById('edit-m-baterai').value = btn.getAttribute('data-val-baterai');
+            document.getElementById('edit-m-penumpang').value = btn.getAttribute('data-val-penumpang');
+            document.getElementById('edit-m-tipe').value = btn.getAttribute('data-val-tipe');
+            document.getElementById('edit-m-fitur').value = btn.getAttribute('data-val-fitur');
+            document.getElementById('edit-m-garansi').value = btn.getAttribute('data-val-garansi');
+            document.getElementById('edit-m-jaringan').value = btn.getAttribute('data-val-jaringan');
+            var myModal = new bootstrap.Modal(document.getElementById('editMobilModal'));
+            myModal.show();
+        }
+
+        function openEditMotor(btn) {
+            document.getElementById('editMotorForm').action = `/admin-dashboard/update-data/motor/${btn.getAttribute('data-val-id')}/`;
+            document.getElementById('edit-mt-merek').value = btn.getAttribute('data-val-merek');
+            document.getElementById('edit-mt-harga').value = btn.getAttribute('data-val-harga');
+            document.getElementById('edit-mt-jarak').value = btn.getAttribute('data-val-jarak');
+            document.getElementById('edit-mt-baterai').value = btn.getAttribute('data-val-baterai');
+            document.getElementById('edit-mt-kec').value = btn.getAttribute('data-val-kec');
+            document.getElementById('edit-mt-waktu').value = btn.getAttribute('data-val-waktu');
+            document.getElementById('edit-mt-jumlah').value = btn.getAttribute('data-val-jumlah');
+            var myModal = new bootstrap.Modal(document.getElementById('editMotorModal'));
+            myModal.show();
+        }
+
+        // JS for file upload UI enhancement
+        const dropArea = document.getElementById('drop-area');
+        const fileInput = document.getElementById('csv-input');
+        const fileNameDisplay = document.getElementById('file-name-display');
+        const fileNameText = document.getElementById('file-name-text');
+
+        // Prevent default drag behaviors
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, preventDefaults, false);
+            document.body.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        // Highlight drop area when item is dragged over it
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, unhighlight, false);
+        });
+
+        function highlight(e) {
+            dropArea.classList.add('dragover');
+        }
+
+        function unhighlight(e) {
+            dropArea.classList.remove('dragover');
+        }
+
+        // Handle dropped files
+        dropArea.addEventListener('drop', handleDrop, false);
+
+        function handleDrop(e) {
+            let dt = e.dataTransfer;
+            let files = dt.files;
+            handleFiles(files);
+        }
+
+        // Handle file select via click
+        fileInput.addEventListener('change', function(e) {
+            handleFiles(this.files);
+        });
+
+        function handleFiles(files) {
+            if(files.length > 0) {
+                fileInput.files = files; // update input files
+                
+                // Update UI visually
+                const file = files[0];
+                if(file.name.endsWith('.csv')) {
+                    fileNameText.textContent = file.name;
+                    fileNameDisplay.style.display = 'block';
+                    dropArea.style.borderColor = '#10b981'; // Green to show valid
+                    document.querySelector('.upload-icon').style.color = '#10b981';
+                } else {
+                    alert("Awas, file yang diupload bukan CSV!");
+                }
+            }
+        }
+    </script>
+</body>
+</html>
