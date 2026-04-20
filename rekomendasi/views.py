@@ -21,12 +21,42 @@ def halaman_rekomendasi(request):
             elif jenis_kendaraan == 'motor':
                 hasil_pencarian = get_rekomendasi_motor(kata_kunci, min_harga=min_harga, max_harga=max_harga, top_n=5)
 
+    # Grouping untuk Roda 4 (Mobil)
+    mobil_raw = Mobil.objects.values_list('merek', flat=True).distinct()
+    merek_mobil_group = {}
+    for nama in mobil_raw:
+        # Pengecualian atau split kata pertama sebagai merek (contoh: 'Hyundai Ioniq 5' -> brand: 'Hyundai', model: 'Ioniq 5')
+        parts = nama.split(' ', 1)
+        brand = parts[0]
+        model = parts[1] if len(parts) > 1 else 'Base Model'
+        
+        if brand not in merek_mobil_group:
+            merek_mobil_group[brand] = []
+        merek_mobil_group[brand].append({'full': nama, 'model': model})
+
+    # Grouping untuk Roda 2 (Motor)
+    motor_raw = Motor.objects.values_list('merek', flat=True).distinct()
+    merek_motor_group = {}
+    for nama in motor_raw:
+        parts = nama.split(' ', 1)
+        brand = parts[0]
+        model = parts[1] if len(parts) > 1 else 'Base Model'
+        
+        if brand not in merek_motor_group:
+            merek_motor_group[brand] = []
+        merek_motor_group[brand].append({'full': nama, 'model': model})
+
+    tipe_mobil = list(Mobil.objects.values_list('tipe_kendaraan', flat=True).distinct().order_by('tipe_kendaraan'))
+
     context = {
         'hasil': hasil_pencarian,
         'kata_kunci': kata_kunci,
         'jenis': jenis_kendaraan,
         'min_harga': min_harga,
-        'max_harga': max_harga
+        'max_harga': max_harga,
+        'merek_mobil_group': merek_mobil_group,
+        'tipe_mobil': tipe_mobil,
+        'merek_motor_group': merek_motor_group
     }
     
     return render(request, 'rekomendasi_app/beranda.html', context)
@@ -128,6 +158,8 @@ def dashboard_admin(request):
                     try: jb = int(row.get('Jumlah Baterai', 1))
                     except ValueError: jb = 1
                     
+                    sistem_pengisian = str(row.get('Sistem Pengisian', 'Direct Charging'))
+                    
                     Motor.objects.update_or_create(
                         merek=row.get('Merek', 'Unknown'),
                         defaults={
@@ -136,7 +168,8 @@ def dashboard_admin(request):
                             'kapasitas_baterai': kapasitas_baterai,
                             'kecepatan_maksimum': kecepatan_max,
                             'waktu_pengisian': waktu_pengisian,
-                            'jumlah_baterai': jb
+                            'jumlah_baterai': jb,
+                            'sistem_pengisian': sistem_pengisian
                         }
                     )
                 messages.success(request, f'Sukses upload data {len(df)} Motor!')
@@ -212,7 +245,46 @@ def update_data_kendaraan(request, jenis, id):
             kendaraan.kecepatan_maksimum = float(request.POST.get('kecepatan_maksimum', kendaraan.kecepatan_maksimum))
             kendaraan.waktu_pengisian = float(request.POST.get('waktu_pengisian', kendaraan.waktu_pengisian))
             kendaraan.jumlah_baterai = int(request.POST.get('jumlah_baterai', kendaraan.jumlah_baterai))
+            kendaraan.sistem_pengisian = request.POST.get('sistem_pengisian', kendaraan.sistem_pengisian)
             kendaraan.save()
             messages.success(request, f'Data Kendaraan {kendaraan.merek} berhasil diperbarui!')
+    return redirect('dashboard_admin')
+
+@login_required
+@user_passes_test(is_admin)
+def tambah_data_kendaraan(request, jenis):
+    if request.method == 'POST':
+        if jenis == 'mobil':
+            kendaraan = Mobil.objects.create(
+                merek=request.POST.get('merek', 'Unknown'),
+                harga=float(request.POST.get('harga', 0)),
+                jarak_tempuh=float(request.POST.get('jarak_tempuh', 0)),
+                kapasitas_baterai=float(request.POST.get('kapasitas_baterai', 0)),
+                kapasitas_penumpang=int(request.POST.get('kapasitas_penumpang', 0)),
+                tipe_kendaraan=request.POST.get('tipe_kendaraan', ''),
+                fitur_keselamatan=request.POST.get('fitur_keselamatan', ''),
+                garansi=request.POST.get('garansi', ''),
+                jaringan_servis=request.POST.get('jaringan_servis', '')
+            )
+            if 'gambar' in request.FILES:
+                kendaraan.gambar = request.FILES['gambar']
+                kendaraan.save()
+            messages.success(request, f'Data Kendaraan Baru {kendaraan.merek} berhasil ditambahkan!')
+            
+        elif jenis == 'motor':
+            kendaraan = Motor.objects.create(
+                merek=request.POST.get('merek', 'Unknown'),
+                harga=float(request.POST.get('harga', 0)),
+                jarak_tempuh=float(request.POST.get('jarak_tempuh', 0)),
+                kapasitas_baterai=float(request.POST.get('kapasitas_baterai', 0)),
+                kecepatan_maksimum=float(request.POST.get('kecepatan_maksimum', 0)),
+                waktu_pengisian=float(request.POST.get('waktu_pengisian', 0)),
+                jumlah_baterai=int(request.POST.get('jumlah_baterai', 1)),
+                sistem_pengisian=request.POST.get('sistem_pengisian', 'Direct Charging')
+            )
+            if 'gambar' in request.FILES:
+                kendaraan.gambar = request.FILES['gambar']
+                kendaraan.save()
+            messages.success(request, f'Data Kendaraan Baru {kendaraan.merek} berhasil ditambahkan!')
             
     return redirect('dashboard_admin')

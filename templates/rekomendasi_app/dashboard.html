@@ -358,6 +358,10 @@
                   
                   <!-- Mobil Tab -->
                   <div class="tab-pane fade show active" id="mobilData" role="tabpanel">
+                      <div class="d-flex justify-content-between align-items-center mb-3">
+                          <h5 class="fw-bold m-0 text-dark" style="font-size: 1.1rem;">Daftar Mobil (R4)</h5>
+                          <button class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#tambahMobilModal"><i class="fas fa-plus me-1"></i> Tambah Mobil Baru</button>
+                      </div>
                       <div class="table-responsive">
                           <table class="table table-hover align-middle">
                               <thead class="table-light">
@@ -402,6 +406,10 @@
 
                   <!-- Motor Tab -->
                   <div class="tab-pane fade" id="motorData" role="tabpanel">
+                      <div class="d-flex justify-content-between align-items-center mb-3">
+                          <h5 class="fw-bold m-0 text-dark" style="font-size: 1.1rem;">Daftar Motor (R2)</h5>
+                          <button class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#tambahMotorModal"><i class="fas fa-plus me-1"></i> Tambah Motor Baru</button>
+                      </div>
                       <div class="table-responsive">
                           <table class="table table-hover align-middle">
                               <thead class="table-light">
@@ -433,7 +441,7 @@
                                       <td><i class="fas fa-route text-success fs-7"></i> {{ item.jarak_tempuh }} km</td>
                                       <td><i class="fas fa-battery-three-quarters text-warning fs-7"></i> {{ item.jumlah_baterai }} Slot<br><small class="text-muted"><i class="fas fa-plug text-primary fs-7"></i> {{ item.waktu_pengisian }} Jam</small></td>
                                       <td>
-                                          <button class="btn btn-sm btn-outline-warning" style="padding: 4px 8px;" title="Edit Data" data-val-id="{{ item.id }}" data-val-merek="{{ item.merek }}" data-val-harga="{{ item.harga }}" data-val-jarak="{{ item.jarak_tempuh }}" data-val-baterai="{{ item.kapasitas_baterai }}" data-val-kec="{{ item.kecepatan_maksimum }}" data-val-waktu="{{ item.waktu_pengisian }}" data-val-jumlah="{{ item.jumlah_baterai }}" onclick="openEditMotor(this)"><i class="fas fa-edit"></i></button>
+                                          <button class="btn btn-sm btn-outline-warning" style="padding: 4px 8px;" title="Edit Data" data-val-id="{{ item.id }}" data-val-merek="{{ item.merek }}" data-val-harga="{{ item.harga }}" data-val-jarak="{{ item.jarak_tempuh }}" data-val-baterai="{{ item.kapasitas_baterai }}" data-val-kec="{{ item.kecepatan_maksimum }}" data-val-waktu="{{ item.waktu_pengisian }}" data-val-jumlah="{{ item.jumlah_baterai }}" data-val-sistem="{{ item.sistem_pengisian }}" onclick="openEditMotor(this)"><i class="fas fa-edit"></i></button>
                                           <button class="btn btn-sm btn-outline-primary" style="padding: 4px 8px;" onclick="openImageModal('motor', {{ item.id }}, '{{ item.merek }}')" title="Upload Gambar"><i class="fas fa-camera"></i></button>
                                           <a href="{% url 'hapus_kendaraan' jenis='motor' id=item.id %}" class="btn btn-sm btn-outline-danger" style="padding: 4px 8px;" onclick="return confirm('PERINGATAN: Yakin ingin menghapus secara permanen kendaraan {{ item.merek }}?')" title="Hapus Permanen"><i class="fas fa-trash"></i></a>
                                       </td>
@@ -573,10 +581,140 @@
                                 <label class="fw-bold">Jumlah Baterai (Slot)</label>
                                 <input type="number" class="form-control" name="jumlah_baterai" id="edit-mt-jumlah" required>
                             </div>
+                            <div class="col-md-4 form-group">
+                                <label class="fw-bold">Sistem Pengisian</label>
+                                <select class="form-select" name="sistem_pengisian" id="edit-mt-sistem" required>
+                                    <option value="Direct Charging">Direct Charging</option>
+                                    <option value="Swap Baterai">Swap Baterai</option>
+                                    <option value="Keduanya">Bisa Keduanya</option>
+                                </select>
+                            </div>
                         </div>
                         <div class="modal-footer border-top-0 bg-light">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batalkan</button>
                             <button type="submit" class="btn btn-warning"><i class="fas fa-save me-1"></i> Simpan Perubahan</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tambah Mobil Modal -->
+        <div class="modal fade" id="tambahMobilModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content border-0 shadow">
+                    <form method="POST" action="{% url 'tambah_data_kendaraan' jenis='mobil' %}" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="modal-header bg-light border-bottom-0">
+                            <h5 class="modal-title fw-bold"><i class="fas fa-plus-circle text-primary me-2"></i> Tambah Mobil Baru (R4)</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body py-4 row g-3">
+                            <div class="col-md-6 form-group">
+                                <label class="fw-bold">Merek / Nama Kendaraan</label>
+                                <input type="text" class="form-control" name="merek" placeholder="Cth: Hyundai Ioniq 5" required>
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label class="fw-bold">Harga (Rp)</label>
+                                <input type="number" step="any" class="form-control" name="harga" placeholder="Cth: 850000000" required>
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label class="fw-bold">Jarak Tempuh (km)</label>
+                                <input type="number" step="any" class="form-control" name="jarak_tempuh" placeholder="Cth: 480" required>
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label class="fw-bold">Kapasitas Baterai (kWh)</label>
+                                <input type="number" step="any" class="form-control" name="kapasitas_baterai" placeholder="Cth: 72.6" required>
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label class="fw-bold">Kapasitas Penumpang</label>
+                                <input type="number" class="form-control" name="kapasitas_penumpang" placeholder="Cth: 5" required>
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label class="fw-bold">Tipe Kendaraan</label>
+                                <input type="text" class="form-control" name="tipe_kendaraan" placeholder="Cth: SUV" required>
+                            </div>
+                            <div class="col-md-12 form-group">
+                                <label class="fw-bold">Fitur Keselamatan</label>
+                                <textarea class="form-control" name="fitur_keselamatan" rows="2" placeholder="Cth: ABS, EBD, 6 Airbags" required></textarea>
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label class="fw-bold">Garansi</label>
+                                <input type="text" class="form-control" name="garansi" placeholder="Cth: 8 Tahun Batere" required>
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label class="fw-bold">Jaringan Servis</label>
+                                <input type="text" class="form-control" name="jaringan_servis" placeholder="Cth: Luas di seluruh Indonesia" required>
+                            </div>
+                            <div class="col-md-12 form-group border-top pt-3 mt-3">
+                                <label class="fw-bold text-primary"><i class="fas fa-image"></i> Gambar Kendaraan (Opsional)</label>
+                                <input type="file" class="form-control" name="gambar" accept="image/png, image/jpeg, image/jpg, image/webp">
+                            </div>
+                        </div>
+                        <div class="modal-footer border-top-0 bg-light">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batalkan</button>
+                            <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i> Simpan Data</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tambah Motor Modal -->
+        <div class="modal fade" id="tambahMotorModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content border-0 shadow">
+                    <form method="POST" action="{% url 'tambah_data_kendaraan' jenis='motor' %}" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="modal-header bg-light border-bottom-0">
+                            <h5 class="modal-title fw-bold"><i class="fas fa-plus-circle text-primary me-2"></i> Tambah Motor Baru (R2)</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body py-4 row g-3">
+                            <div class="col-md-6 form-group">
+                                <label class="fw-bold">Merek / Nama Motor</label>
+                                <input type="text" class="form-control" name="merek" placeholder="Cth: Alva One" required>
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label class="fw-bold">Harga (Rp)</label>
+                                <input type="number" step="any" class="form-control" name="harga" placeholder="Cth: 36000000" required>
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label class="fw-bold">Jarak Tempuh (km)</label>
+                                <input type="number" step="any" class="form-control" name="jarak_tempuh" placeholder="Cth: 70" required>
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label class="fw-bold">Kapasitas Baterai (kWh)</label>
+                                <input type="number" step="any" class="form-control" name="kapasitas_baterai" placeholder="Cth: 2.7" required>
+                            </div>
+                            <div class="col-md-4 form-group">
+                                <label class="fw-bold">Kecepatan Max (km/jam)</label>
+                                <input type="number" step="any" class="form-control" name="kecepatan_maksimum" placeholder="Cth: 90" required>
+                            </div>
+                            <div class="col-md-4 form-group">
+                                <label class="fw-bold">Waktu Pengecasan (Jam)</label>
+                                <input type="number" step="any" class="form-control" name="waktu_pengisian" placeholder="Cth: 4" required>
+                            </div>
+                            <div class="col-md-4 form-group">
+                                <label class="fw-bold">Jumlah Baterai (Slot)</label>
+                                <input type="number" class="form-control" name="jumlah_baterai" value="1" required>
+                            </div>
+                            <div class="col-md-4 form-group">
+                                <label class="fw-bold">Sistem Pengisian</label>
+                                <select class="form-select" name="sistem_pengisian" required>
+                                    <option value="Direct Charging">Direct Charging</option>
+                                    <option value="Swap Baterai">Swap Baterai</option>
+                                    <option value="Keduanya">Bisa Keduanya</option>
+                                </select>
+                            </div>
+                            <div class="col-md-12 form-group border-top pt-3 mt-3">
+                                <label class="fw-bold text-primary"><i class="fas fa-image"></i> Gambar Kendaraan (Opsional)</label>
+                                <input type="file" class="form-control" name="gambar" accept="image/png, image/jpeg, image/jpg, image/webp">
+                            </div>
+                        </div>
+                        <div class="modal-footer border-top-0 bg-light">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batalkan</button>
+                            <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i> Simpan Data</button>
                         </div>
                     </form>
                 </div>
@@ -619,6 +757,7 @@
             document.getElementById('edit-mt-kec').value = btn.getAttribute('data-val-kec');
             document.getElementById('edit-mt-waktu').value = btn.getAttribute('data-val-waktu');
             document.getElementById('edit-mt-jumlah').value = btn.getAttribute('data-val-jumlah');
+            document.getElementById('edit-mt-sistem').value = btn.getAttribute('data-val-sistem');
             var myModal = new bootstrap.Modal(document.getElementById('editMotorModal'));
             myModal.show();
         }

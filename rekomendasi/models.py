@@ -57,6 +57,17 @@ class Mobil(BaseKendaraan):
     jaringan_servis = models.CharField(max_length=100)
 
 class Motor(BaseKendaraan):
+    SISTEM_PENGISIAN_CHOICES = [
+        ('Direct Charging', 'Colok Langsung (Direct Charging)'),
+        ('Swap Baterai', 'Tukar Baterai (Battery Swap)'),
+        ('Keduanya', 'Bisa Keduanya (Direct & Swap)')
+    ]
     kecepatan_maksimum = models.FloatField(help_text="Kecepatan max dalam km/jam")
     waktu_pengisian = models.FloatField(help_text="Waktu charging penuh dalam jam")
     jumlah_baterai = models.IntegerField(default=1, help_text="Jumlah slot/baterai bawaan (misal: 1 atau 2)")
+    sistem_pengisian = models.CharField(
+        max_length=50,
+        choices=SISTEM_PENGISIAN_CHOICES,
+        default='Direct Charging',
+        help_text="Pilih sistem/metode pengisian daya untuk motor ini"
+    )

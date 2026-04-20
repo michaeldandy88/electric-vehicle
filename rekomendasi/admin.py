@@ -8,5 +8,5 @@ class MobilAdmin(admin.ModelAdmin):
 
 @admin.register(Motor)
 class MotorAdmin(admin.ModelAdmin):
-    list_display = ('merek', 'harga', 'jarak_tempuh')
+    list_display = ('merek', 'harga', 'jarak_tempuh', 'sistem_pengisian')
     search_fields = ('merek',)

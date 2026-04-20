@@ -8,4 +8,5 @@ urlpatterns = [
     path('admin-dashboard/hapus/<str:jenis>/<int:id>/', views.hapus_kendaraan, name='hapus_kendaraan'),
     path('admin-dashboard/update-gambar/<str:jenis>/<int:id>/', views.update_gambar_kendaraan, name='update_gambar_kendaraan'),
     path('admin-dashboard/update-data/<str:jenis>/<int:id>/', views.update_data_kendaraan, name='update_data_kendaraan'),
+    path('admin-dashboard/tambah-data/<str:jenis>/', views.tambah_data_kendaraan, name='tambah_data_kendaraan'),
 ]

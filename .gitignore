@@ -1,0 +1,30 @@
+# Python / Django
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment (Virtual Env)
+env/
+venv/
+ENV/
+.env
+
+# Database (Biasanya database lokal tidak di-push ke Github publik)
+# Jika Anda tetap ingin mem-push database agar tersimpan, hapus tanda '#' di bawah ini
+# db.sqlite3
+db.sqlite3-journal
+
+# File Media (Upload gambar/file CSV dari user/admin biasanya tidak di-push)
+media/
+# Jika ingin struktur folder media ikut ter-push tapi isinya kosong, 
+# Anda bisa mengecualikan folder tapi bukan isinya secara manual. Tapi amannya ignore saja.
+
+# Logs
+*.log
+
+# Windows / OS dan Editor
+Thumbs.db
+.DS_Store
+.vscode/
+.idea/
+.gemini/

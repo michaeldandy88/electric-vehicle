@@ -41,6 +41,53 @@ def get_rekomendasi_mobil(kriteria_user, min_harga=None, max_harga=None, top_n=5
     if df.empty: return []
 
     kriteria_bersih = kriteria_user.lower()
+    
+    # Ambil list tipe sebelum filter apapun
+    semua_tipe_awal = df['tipe_kendaraan'].dropna().unique()
+    tipe_terdaftar_awal = list(set([str(t).lower().strip() for t in semua_tipe_awal if str(t).strip() != '']))
+
+    # --- HARD FILTERS ---
+    merek_terdaftar = df['merek'].unique()
+    brand_keywords = list(set([m.split()[0].lower() for m in merek_terdaftar]))
+    
+    found_exact_models = [m for m in merek_terdaftar if m.lower() in kriteria_bersih]
+    if found_exact_models:
+        df = df[df['merek'].isin(found_exact_models)]
+    else:
+        found_brands = [b for b in brand_keywords if b in kriteria_bersih.split()]
+        if found_brands:
+            kondisi = pd.Series([False]*len(df), index=df.index)
+            for b in found_brands:
+                kondisi = kondisi | df['merek'].str.lower().str.startswith(b.lower())
+            df = df[kondisi]
+
+    if df.empty: return []
+
+    found_types = []
+    for t in tipe_terdaftar_awal:
+        if len(t.split()) > 1:
+            if t in kriteria_bersih:
+                found_types.append(t)
+        else:
+            if t in kriteria_bersih.split():
+                found_types.append(t)
+                
+    if found_types:
+        kondisi = pd.Series([False]*len(df), index=df.index)
+        for t in found_types:
+            kondisi = kondisi | (df['tipe_kendaraan'].str.lower() == t)
+        df = df[kondisi]
+            
+    if df.empty: return []
+
+    penumpang_umum = ['4 penumpang', '5 penumpang', '7 penumpang']
+    for p in penumpang_umum:
+        if p in kriteria_bersih:
+            kap = int(p.split()[0])
+            df = df[df['kapasitas_penumpang'] == kap]
+
+    if df.empty: return []
+    # -------------------
 
     kamus_kriteria = {
         "harga terjangkau": "harga_terjangkau", "harga menengah": "harga_menengah", "harga premium": "harga_premium",
@@ -53,14 +100,6 @@ def get_rekomendasi_mobil(kriteria_user, min_harga=None, max_harga=None, top_n=5
     for asli, sistem in kamus_kriteria.items():
         kriteria_bersih = kriteria_bersih.replace(asli, sistem)
 
-    tipe_umum = ['suv', 'mpv', 'hatchback', 'sedan', 'crossover']
-    for tipe in tipe_umum:
-        if tipe in kriteria_bersih.split():
-            df = df[df['tipe_kendaraan'].str.lower().str.contains(tipe)]
-            break
-            
-    if df.empty: return []
-
     df['Harga_Kategori'] = aman_qcut(df['harga'], [0, 0.25, 0.75, 1.0], ['harga_terjangkau', 'harga_menengah', 'harga_premium'])
     df['Jarak_Kategori'] = aman_qcut(df['jarak_tempuh'], [0, 0.25, 0.75, 1.0], ['jarak_pendek', 'jarak_menengah', 'jarak_jauh'])
     df['Baterai_Kategori'] = aman_qcut(df['kapasitas_baterai'], [0, 0.33, 0.66, 1.0], ['baterai_kecil', 'baterai_sedang', 'baterai_besar'])
@@ -72,11 +111,12 @@ def get_rekomendasi_mobil(kriteria_user, min_harga=None, max_harga=None, top_n=5
     
     df['Baterai_Raw'] = df['kapasitas_baterai'].astype(str) + ' kwh'
     df['Jarak_Raw'] = df['jarak_tempuh'].astype(str) + ' km'
+    df['Merek_Clean'] = df['merek'].astype(str).str.lower()
 
     df['soup'] = df.apply(lambda x: ' '.join([
         x['Harga_Kategori'], x['Jarak_Kategori'], x['Baterai_Kategori'], 
         x['Penumpang_Kategori'], x['Tipe_Clean'], x['Fitur_Clean'], 
-        x['Garansi_Clean'], x['Baterai_Raw'], x['Jarak_Raw']
+        x['Garansi_Clean'], x['Baterai_Raw'], x['Jarak_Raw'], x['Merek_Clean']
     ]), axis=1)
 
     tfidf = TfidfVectorizer()
@@ -122,37 +162,72 @@ def get_rekomendasi_motor(kriteria_user, min_harga=None, max_harga=None, top_n=5
 
     kriteria_bersih = kriteria_user.lower()
 
+    # --- HARD FILTERS ---
+    merek_terdaftar = df['merek'].unique()
+    brand_keywords = list(set([m.split()[0].lower() for m in merek_terdaftar]))
+    
+    found_exact_models = [m for m in merek_terdaftar if m.lower() in kriteria_bersih]
+    if found_exact_models:
+        df = df[df['merek'].isin(found_exact_models)]
+    else:
+        found_brands = [b for b in brand_keywords if b in kriteria_bersih.split()]
+        if found_brands:
+            kondisi = pd.Series([False]*len(df), index=df.index)
+            for b in found_brands:
+                kondisi = kondisi | df['merek'].str.lower().str.startswith(b.lower())
+            df = df[kondisi]
+
+    if df.empty: return []
+
+    is_direct = "direct charging" in kriteria_bersih
+    is_swap = "swap baterai" in kriteria_bersih
+    
+    if is_direct or is_swap:
+        kondisi = pd.Series([False]*len(df), index=df.index)
+        if is_direct:
+            kondisi = kondisi | df['sistem_pengisian'].str.lower().str.contains('direct')
+        if is_swap:
+            kondisi = kondisi | df['sistem_pengisian'].str.lower().str.contains('swap')
+        kondisi = kondisi | df['sistem_pengisian'].str.lower().str.contains('keduanya')
+        df = df[kondisi]
+
+    if df.empty: return []
+
+    if "1 baterai" in kriteria_bersih:
+        df = df[df['jumlah_baterai'] == 1]
+    if "2 baterai" in kriteria_bersih:
+        df = df[df['jumlah_baterai'] == 2]
+
+    if df.empty: return []
+    # -------------------
+
     kamus_kriteria = {
         "harga terjangkau": "harga_terjangkau", "harga menengah": "harga_menengah", "harga premium": "harga_premium",
         "jarak pendek": "jarak_pendek", "jarak menengah": "jarak_menengah", "jarak jauh": "jarak_jauh",
         "cas cepat": "cas_cepat", "cas standar": "cas_standar", "cas lama": "cas_lama",
         "kecepatan standar": "kecepatan_standar", "kecepatan tinggi": "kecepatan_tinggi",
         "1 baterai": "baterai_1", "2 baterai": "baterai_2",
+        "direct charging": "sistem_direct_charging", "swap baterai": "sistem_swap_baterai", "tukar baterai": "sistem_swap_baterai"
     }
     for asli, sistem in kamus_kriteria.items():
         kriteria_bersih = kriteria_bersih.replace(asli, sistem)
-
-    if "baterai_2" in kriteria_bersih:
-        df = df[df['jumlah_baterai'] == 2]
-    elif "baterai_1" in kriteria_bersih:
-        df = df[df['jumlah_baterai'] == 1]
-
-    if df.empty: return []
 
     df['Harga_Kategori'] = aman_qcut(df['harga'], [0, 0.33, 0.66, 1.0], ['harga_terjangkau', 'harga_menengah', 'harga_premium'])
     df['Jarak_Kategori'] = aman_qcut(df['jarak_tempuh'], [0, 0.33, 0.66, 1.0], ['jarak_pendek', 'jarak_menengah', 'jarak_jauh'])
     df['Kecepatan_Kategori'] = aman_qcut(df['kecepatan_maksimum'], [0, 0.5, 1.0], ['kecepatan_standar', 'kecepatan_tinggi'])
     df['Cas_Kategori'] = aman_qcut(df['waktu_pengisian'], [0, 0.33, 0.66, 1.0], ['cas_cepat', 'cas_standar', 'cas_lama'])
     df['Jumlah_Baterai_Kategori'] = df['jumlah_baterai'].astype(str).apply(lambda x: 'baterai_' + x)
+    df['Sistem_Pengisian_Kategori'] = df['sistem_pengisian'].astype(str).str.replace(' ', '_').str.lower().apply(lambda x: 'sistem_' + x)
     
     df['Baterai_Raw'] = df['kapasitas_baterai'].astype(str) + ' kwh'
     df['Jarak_Raw'] = df['jarak_tempuh'].astype(str) + ' km'
     df['Kecepatan_Raw'] = df['kecepatan_maksimum'].astype(str) + ' km/jam'
+    df['Merek_Clean'] = df['merek'].astype(str).str.lower()
     
     df['soup'] = df.apply(lambda x: ' '.join([
         x['Harga_Kategori'], x['Jarak_Kategori'], x['Kecepatan_Kategori'], 
-        x['Cas_Kategori'], x['Jumlah_Baterai_Kategori'], 
-        x['Baterai_Raw'], x['Jarak_Raw'], x['Kecepatan_Raw']
+        x['Cas_Kategori'], x['Jumlah_Baterai_Kategori'], x['Sistem_Pengisian_Kategori'],
+        x['Baterai_Raw'], x['Jarak_Raw'], x['Kecepatan_Raw'], x['Merek_Clean']
     ]), axis=1)
 
     tfidf = TfidfVectorizer()
@@ -177,6 +252,7 @@ def get_rekomendasi_motor(kriteria_user, min_harga=None, max_harga=None, top_n=5
                 'baterai': motor['kapasitas_baterai'],
                 'kecepatan': motor['kecepatan_maksimum'],
                 'cas': motor['waktu_pengisian'],
+                'sistem_pengisian': motor['sistem_pengisian'],
                 'gambar': motor['gambar'] if 'gambar' in motor and pd.notna(motor['gambar']) else '',
                 'skor_kecocokan': round(sim_scores[idx] * 100, 2)
             })

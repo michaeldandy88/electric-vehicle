@@ -145,6 +145,25 @@
             box-shadow: 0 2px 8px rgba(59, 61, 236, 0.3);
         }
 
+        /* Checkbox styling */
+        .custom-checkbox-group {
+            max-height: 180px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+            padding-right: 5px;
+        }
+        .custom-checkbox-group::-webkit-scrollbar { width: 5px; }
+        .custom-checkbox-group::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .form-check-label {
+            font-size: 14px;
+            color: var(--text-dark);
+            cursor: pointer;
+        }
+        .form-check-input:checked {
+            background-color: var(--brand-color);
+            border-color: var(--brand-color);
+        }
+
         /* Main Content */
         .content-area {
             flex-grow: 1;
@@ -355,42 +374,103 @@
                     <label for="motor"><i class="fas fa-motorcycle"></i> Roda 2</label>
                 </div>
 
-                <div class="filter-group mt-4">
-                    <div class="filter-label"><i class="fas fa-tags text-primary"></i> Quick Tags</div>
-                    
-                    <!-- Quick tags for Mobil -->
-                    <div id="quick-tags-mobil" class="quick-tags-container" style="{% if jenis == 'motor' %}display:none;{% endif %}">
-                        <span class="quick-tag" onclick="addTag(this)">Harga Terjangkau</span>
-                        <span class="quick-tag" onclick="addTag(this)">Harga Menengah</span>
-                        <span class="quick-tag" onclick="addTag(this)">Harga Premium</span>
-                        <span class="quick-tag" onclick="addTag(this)">Jarak Dekat</span>
-                        <span class="quick-tag" onclick="addTag(this)">Jarak Menengah</span>
-                        <span class="quick-tag" onclick="addTag(this)">Jarak Jauh</span>
-                        <span class="quick-tag" onclick="addTag(this)">Baterai Kecil</span>
-                        <span class="quick-tag" onclick="addTag(this)">Baterai Sedang</span>
-                        <span class="quick-tag" onclick="addTag(this)">Baterai Besar</span>
-                        <span class="quick-tag" onclick="addTag(this)">SUV</span>
-                        <span class="quick-tag" onclick="addTag(this)">Hatchback</span>
-                        <span class="quick-tag" onclick="addTag(this)">4 Penumpang</span>
-                        <span class="quick-tag" onclick="addTag(this)">5 Penumpang</span>
-                        <span class="quick-tag" onclick="addTag(this)">7 Penumpang</span>
+                <!-- Sidebar Filters for Mobil -->
+                <div id="filter-mobil" style="{% if jenis == 'motor' %}display:none;{% endif %}">
+                    <div class="filter-group">
+                        <div class="filter-label">Merek Mobil</div>
+                        <div class="custom-checkbox-group">
+                            {% for brand, models in merek_mobil_group.items %}
+                            <div class="mb-2 border-bottom pb-2">
+                                <div class="form-check">
+                                    <input class="form-check-input brand-check" type="checkbox" data-brand="{{ brand|slugify }}" id="merek_mobil_{{ forloop.counter }}" value="{{ brand }}">
+                                    <label class="form-check-label fw-bold" for="merek_mobil_{{ forloop.counter }}">{{ brand|title }} <span class="text-muted" style="font-size: 11px;">({{ models|length }})</span></label>
+                                </div>
+                                <!-- Model Checkboxes (Hidden by default) -->
+                                <div class="model-list ms-4 mt-2 d-none" id="models_{{ brand|slugify }}">
+                                    {% for m in models %}
+                                    <div class="form-check mb-1">
+                                        <input class="form-check-input filter-check" type="checkbox" id="model_m_{{ forloop.parentloop.counter }}_{{ forloop.counter }}" value="{{ m.full }}">
+                                        <label class="form-check-label text-muted" style="font-size: 13px;" for="model_m_{{ forloop.parentloop.counter }}_{{ forloop.counter }}">{{ m.model }}</label>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
                     </div>
+                    <div class="filter-group">
+                        <div class="filter-label">Body Type</div>
+                        <div class="custom-checkbox-group">
+                            {% for t in tipe_mobil %}
+                            <div class="form-check mb-2">
+                                <input class="form-check-input filter-check" type="checkbox" id="tipe_{{ forloop.counter }}" value="{{ t }}">
+                                <label class="form-check-label" for="tipe_{{ forloop.counter }}">{{ t|title }}</label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="filter-group">
+                        <div class="filter-label">Kapasitas Penumpang</div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input filter-check" type="checkbox" id="penumpang_4" value="4 Penumpang">
+                            <label class="form-check-label" for="penumpang_4">4 Penumpang</label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input filter-check" type="checkbox" id="penumpang_5" value="5 Penumpang">
+                            <label class="form-check-label" for="penumpang_5">5 Penumpang</label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input filter-check" type="checkbox" id="penumpang_7" value="7 Penumpang">
+                            <label class="form-check-label" for="penumpang_7">7 Penumpang</label>
+                        </div>
+                    </div>
+                </div>
 
-                    <!-- Quick tags for Motor -->
-                    <div id="quick-tags-motor" class="quick-tags-container" style="{% if jenis == 'motor' %}display:flex;{% else %}display:none;{% endif %}">
-                        <span class="quick-tag" onclick="addTag(this)">Harga Terjangkau</span>
-                        <span class="quick-tag" onclick="addTag(this)">Harga Menengah</span>
-                        <span class="quick-tag" onclick="addTag(this)">Harga Premium</span>
-                        <span class="quick-tag" onclick="addTag(this)">Jarak Pendek</span>
-                        <span class="quick-tag" onclick="addTag(this)">Jarak Menengah</span>
-                        <span class="quick-tag" onclick="addTag(this)">Jarak Jauh</span>
-                        <span class="quick-tag" onclick="addTag(this)">Cas Cepat</span>
-                        <span class="quick-tag" onclick="addTag(this)">Cas Standar</span>
-                        <span class="quick-tag" onclick="addTag(this)">Cas Lama</span>
-                        <span class="quick-tag" onclick="addTag(this)">Kecepatan Standar</span>
-                        <span class="quick-tag" onclick="addTag(this)">Kecepatan Tinggi</span>
-                        <span class="quick-tag" onclick="addTag(this)">1 Baterai</span>
-                        <span class="quick-tag" onclick="addTag(this)">2 Baterai</span>
+                <!-- Sidebar Filters for Motor -->
+                <div id="filter-motor" style="{% if jenis == 'motor' %}display:block;{% else %}display:none;{% endif %}">
+                    <div class="filter-group">
+                        <div class="filter-label">Merek Motor</div>
+                        <div class="custom-checkbox-group">
+                            {% for brand, models in merek_motor_group.items %}
+                            <div class="mb-2 border-bottom pb-2">
+                                <div class="form-check">
+                                    <input class="form-check-input brand-check" type="checkbox" data-brand="{{ brand|slugify }}" id="merek_motor_{{ forloop.counter }}" value="{{ brand }}">
+                                    <label class="form-check-label fw-bold" for="merek_motor_{{ forloop.counter }}">{{ brand|title }} <span class="text-muted" style="font-size: 11px;">({{ models|length }})</span></label>
+                                </div>
+                                <!-- Model Checkboxes (Hidden by default) -->
+                                <div class="model-list ms-4 mt-2 d-none" id="models_motor_{{ brand|slugify }}">
+                                    {% for m in models %}
+                                    <div class="form-check mb-1">
+                                        <input class="form-check-input filter-check" type="checkbox" id="model_mt_{{ forloop.parentloop.counter }}_{{ forloop.counter }}" value="{{ m.full }}">
+                                        <label class="form-check-label text-muted" style="font-size: 13px;" for="model_mt_{{ forloop.parentloop.counter }}_{{ forloop.counter }}">{{ m.model }}</label>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="filter-group">
+                        <div class="filter-label">Sistem Pengisian</div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input filter-check" type="checkbox" id="charge_direct" value="Direct Charging">
+                            <label class="form-check-label" for="charge_direct">Direct Charging</label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input filter-check" type="checkbox" id="charge_swap" value="Swap Baterai">
+                            <label class="form-check-label" for="charge_swap">Swap Baterai</label>
+                        </div>
+                    </div>
+                    <div class="filter-group">
+                        <div class="filter-label">Jumlah Baterai</div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input filter-check" type="checkbox" id="baterai_1" value="1 Baterai">
+                            <label class="form-check-label" for="baterai_1">1 Baterai</label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input filter-check" type="checkbox" id="baterai_2" value="2 Baterai">
+                            <label class="form-check-label" for="baterai_2">2 Baterai</label>
+                        </div>
                     </div>
                 </div>
 
@@ -409,10 +489,35 @@
             <div class="content-area">
                 
                 <!-- Search Bar Container -->
-                <div class="search-container">
+                <div class="search-container mb-3">
                     <i class="fas fa-search ms-3 text-muted"></i>
                     <input type="text" class="search-input" name="kriteria" placeholder="Ketik kriteria spesifik (misal: suv fitur canggih)..." value="{{ kata_kunci }}" required>
                     <button type="submit" class="search-btn">Temukan Rekomendasi</button>
+                </div>
+                
+                <!-- Quick Tags (Moved from Sidebar) -->
+                <div class="mb-4" style="margin-left: 10px;">
+                    <div class="text-muted mb-2" style="font-size: 13px; font-weight: 500;"><i class="fas fa-magic text-warning"></i> Saran Pencarian Populer:</div>
+                    
+                    <!-- Quick tags for Mobil -->
+                    <div id="quick-tags-mobil" class="quick-tags-container" style="{% if jenis == 'motor' %}display:none;{% endif %}">
+                        <span class="quick-tag" onclick="addTag(this)">Harga Terjangkau</span>
+                        <span class="quick-tag" onclick="addTag(this)">Jarak Menengah</span>
+                        <span class="quick-tag" onclick="addTag(this)">Baterai Sedang</span>
+                        <span class="quick-tag" onclick="addTag(this)">SUV Canggih</span>
+                        <span class="quick-tag" onclick="addTag(this)">Range Jauh</span>
+                        <span class="quick-tag" onclick="addTag(this)">7 Penumpang</span>
+                    </div>
+
+                    <!-- Quick tags for Motor -->
+                    <div id="quick-tags-motor" class="quick-tags-container" style="{% if jenis == 'motor' %}display:flex;{% else %}display:none;{% endif %}">
+                        <span class="quick-tag" onclick="addTag(this)">Harga Terjangkau</span>
+                        <span class="quick-tag" onclick="addTag(this)">Cas Cepat</span>
+                        <span class="quick-tag" onclick="addTag(this)">Jarak Jauh</span>
+                        <span class="quick-tag" onclick="addTag(this)">2 Baterai</span>
+                        <span class="quick-tag" onclick="addTag(this)">Tukar Baterai</span>
+                        <span class="quick-tag" onclick="addTag(this)">Kecepatan Tinggi</span>
+                    </div>
                 </div>
 
                 <!-- Results Header -->
@@ -454,6 +559,7 @@
                                     {% elif jenis == 'motor' %}
                                         <div class="spec-item"><i class="fas fa-tachometer-alt text-danger"></i> {{ item.kecepatan }} km/h Max</div>
                                         <div class="spec-item"><i class="fas fa-plug text-primary"></i> Cas {{ item.cas }} Jam</div>
+                                        <div class="spec-item"><i class="fas fa-bolt text-success"></i> {{ item.sistem_pengisian }}</div>
                                     {% endif %}
                                 </div>
                                 
@@ -485,7 +591,7 @@
         </form>
     </div>
 
-    <!-- Script to auto submit form if radio changes -->
+    <!-- Script to auto submit form if radio changes and handle checkboxes -->
     <script>
         function addTag(element) {
             const searchInput = document.querySelector('.search-input');
@@ -494,15 +600,87 @@
                 searchInput.value = searchInput.value ? searchInput.value + ' ' + tagText : tagText;
             }
         }
-        
+
+        // On page load, restore checkbox state based on searchInput value
+        window.addEventListener('load', function() {
+            const searchVal = document.querySelector('.search-input').value.toLowerCase();
+            
+            // Restore Brand checks
+            document.querySelectorAll('.brand-check').forEach(chk => {
+                if (searchVal.includes(chk.value.toLowerCase())) {
+                    chk.checked = true;
+                    chk.closest('.form-check').nextElementSibling.classList.remove('d-none');
+                }
+            });
+            // Restore filter checks (models, types, etc)
+            document.querySelectorAll('.filter-check').forEach(chk => {
+                if (searchVal.includes(chk.value.toLowerCase())) {
+                    chk.checked = true;
+                }
+            });
+        });
+
+        // Keep search input updated when checkboxes are toggled
+        document.querySelectorAll('.filter-check').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const searchInput = document.querySelector('.search-input');
+                const tagText = this.value;
+                if (this.checked) {
+                    if (!searchInput.value.toLowerCase().includes(tagText.toLowerCase())) {
+                        searchInput.value = searchInput.value ? searchInput.value + ' ' + tagText : tagText;
+                    }
+                } else {
+                    const regex = new RegExp(tagText, "gi");
+                    searchInput.value = searchInput.value.replace(regex, '').replace(/\s+/g, ' ').trim();
+                }
+                document.getElementById('searchForm').submit();
+            });
+        });
+
+        // Hide/Show models when brand is checked, and manage search string
+        document.querySelectorAll('.brand-check').forEach(brandCheck => {
+            brandCheck.addEventListener('change', function() {
+                const searchInput = document.querySelector('.search-input');
+                const tagText = this.value;
+                const modelsContainer = this.closest('.form-check').nextElementSibling;
+                
+                if (this.checked) {
+                    // Show models
+                    modelsContainer.classList.remove('d-none');
+                    // Add brand to search
+                    if (!searchInput.value.toLowerCase().includes(tagText.toLowerCase())) {
+                        searchInput.value = searchInput.value ? searchInput.value + ' ' + tagText : tagText;
+                    }
+                } else {
+                    // Hide models
+                    modelsContainer.classList.add('d-none');
+                    // Remove brand from search
+                    const regex = new RegExp(tagText, "gi");
+                    searchInput.value = searchInput.value.replace(regex, '').replace(/\s+/g, ' ').trim();
+                    
+                    // Uncheck all models inside and remove them from search
+                    modelsContainer.querySelectorAll('.filter-check').forEach(modelCheck => {
+                        modelCheck.checked = false;
+                        const modelRegex = new RegExp(modelCheck.value, "gi");
+                        searchInput.value = searchInput.value.replace(modelRegex, '').replace(/\s+/g, ' ').trim();
+                    });
+                }
+                document.getElementById('searchForm').submit();
+            });
+        });
+
         document.querySelectorAll('input[name="jenis"]').forEach(item => {
             item.addEventListener('change', event => {
                 if(item.value === 'mobil') {
                     document.getElementById('quick-tags-mobil').style.display = 'flex';
                     document.getElementById('quick-tags-motor').style.display = 'none';
+                    document.getElementById('filter-mobil').style.display = 'block';
+                    document.getElementById('filter-motor').style.display = 'none';
                 } else {
                     document.getElementById('quick-tags-mobil').style.display = 'none';
                     document.getElementById('quick-tags-motor').style.display = 'flex';
+                    document.getElementById('filter-mobil').style.display = 'none';
+                    document.getElementById('filter-motor').style.display = 'block';
                 }
                 
                 if(document.querySelector('.search-input').value.trim() !== '' || 
