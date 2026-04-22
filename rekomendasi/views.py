@@ -106,16 +106,23 @@ def dashboard_admin(request):
 
         try:
             df = pd.read_csv(csv_file)
+            df = df.fillna('')
             
             if jenis == 'mobil':
                 for index, row in df.iterrows():
-                    try: harga = float(str(row.get('Harga', '0')).replace(',', ''))
+                    try: 
+                        val = str(row.get('Harga', '0')).replace(',', '').strip()
+                        harga = 0.0 if val.lower() == 'nan' or val == '' else float(val)
                     except ValueError: harga = 0.0
                     
-                    try: jarak_tempuh = float(str(row.get('Jarak Tempuh', '0')).lower().replace('km', '').strip())
+                    try: 
+                        val = str(row.get('Jarak Tempuh', '0')).lower().replace('km', '').strip()
+                        jarak_tempuh = 0.0 if val == 'nan' or val == '' else float(val)
                     except ValueError: jarak_tempuh = 0.0
                     
-                    try: kapasitas_baterai = float(str(row.get('Kapasitas Baterai', '0')).lower().replace('kwh', '').strip())
+                    try: 
+                        val = str(row.get('Kapasitas Baterai', '0')).lower().replace('kwh', '').strip()
+                        kapasitas_baterai = 0.0 if val == 'nan' or val == '' else float(val)
                     except ValueError: kapasitas_baterai = 0.0
                     
                     try: kaps_penumpang = int(row.get('Kapasitas Penumpang', 0))
@@ -138,20 +145,28 @@ def dashboard_admin(request):
                 
             elif jenis == 'motor':
                 for index, row in df.iterrows():
-                    try: harga = float(str(row.get('Harga', '0')).replace(',', ''))
+                    try: 
+                        val = str(row.get('Harga', '0')).replace(',', '').strip()
+                        harga = 0.0 if val.lower() == 'nan' or val == '' else float(val)
                     except ValueError: harga = 0.0
                     
-                    try: jarak_tempuh = float(str(row.get('Jarak Tempuh', '0')).lower().replace('km', '').strip())
+                    try: 
+                        val = str(row.get('Jarak Tempuh', '0')).lower().replace('km', '').strip()
+                        jarak_tempuh = 0.0 if val == 'nan' or val == '' else float(val)
                     except ValueError: jarak_tempuh = 0.0
                     
-                    try: kecepatan_max = float(str(row.get('Kecepatan Maksimum', '0')).lower().replace('km/jam', '').strip())
+                    try: 
+                        val = str(row.get('Kecepatan Maksimum', '0')).lower().replace('km/jam', '').replace('km', '').strip()
+                        kecepatan_max = 0.0 if val == 'nan' or val == '' else float(val)
                     except ValueError: kecepatan_max = 0.0
                     
-                    try: kapasitas_baterai = float(str(row.get('Kapasitas Baterai', '0')).lower().replace('kwh', '').strip())
+                    try: 
+                        val = str(row.get('Kapasitas Baterai', '0')).lower().replace('kwh', '').strip()
+                        kapasitas_baterai = 0.0 if val == 'nan' or val == '' else float(val)
                     except ValueError: kapasitas_baterai = 0.0
                     
                     wp_str = str(row.get('Waktu Pengisian', '0')).lower().replace('jam', '').strip()
-                    if wp_str == 'nan': wp_str = '0'
+                    if wp_str == 'nan' or wp_str == '': wp_str = '0'
                     try: waktu_pengisian = float(wp_str)
                     except ValueError: waktu_pengisian = 0.0
                     
