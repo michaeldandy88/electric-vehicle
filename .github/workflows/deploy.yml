@@ -1,0 +1,55 @@
+name: Django CI/CD Shared Hosting Deployment (Python 3.13.3)
+
+on:
+  push:
+    branches:
+      - main  # Otomatis deploy saat push ke branch main
+
+jobs:
+  # TAHAP 1: CONTINUOUS INTEGRATION (CI)
+  validation-stage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          # Menggunakan versi Python 3.13.3 yang tepat sesuai spesifikasi Anda
+          python-version: '3.13.3' 
+
+      - name: Install Dependencies di GitHub Runner
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Testing Django
+        run: |
+          # Memastikan kode algoritmik TF-IDF dan Cosine Similarity bebas error
+          python manage.py test
+
+  # TAHAP 2: CONTINUOUS DEPLOYMENT (CD) SINKRONISASI KE CPANEL
+  deploy-stage:
+    needs: validation-stage
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Sinkronisasi Perubahan Berkas via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          # Path folder cPanel tempat Anda mengekstrak file ZIP di Tahap 2 sebelumnya
+          server-dir: /home/pilihevc/sistem_rekomendasi/
+          # CRITICAL: Pastikan venv, database pengujian, dan metadata git tidak ikut terunggah
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/venv/**
+            **/db.sqlite3
+            **/__pycache__/**
+            *.pyc
