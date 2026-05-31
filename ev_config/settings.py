@@ -130,3 +130,8 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 LOGIN_URL = '/admin/login/'
+
+# Cloudflare Turnstile Configuration
+TURNSTILE_SITE_KEY = '0x4AAAAAADatIF_7qBfZaw2t'
+TURNSTILE_SECRET_KEY = '0x4AAAAAADatIALVAPlQFwX-uDS6DyGSukw'
+
