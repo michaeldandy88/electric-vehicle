@@ -15,15 +15,15 @@ def format_angka_rupiah(angka):
     try:
         val = float(angka)
         if val >= 1_000_000_000:
-            hasil = f"{val / 1_000_000_000:.2f}".rstrip('0').rstrip('.')
-            return f"{hasil} Miliar"
+            hasil = round(val / 1_000_000_000, 2)
+            return f"Rp {hasil} Miliar (OTR)"
         elif val >= 1_000_000:
-            hasil = f"{val / 1_000_000:.2f}".rstrip('0').rstrip('.')
-            return f"{hasil} Juta"
+            hasil = round(val / 1_000_000, 2)
+            return f"Rp {hasil} Juta (OTR)"
         else:
-            return f"{val:,.0f}"
+            return f"Rp {val:,.0f} (OTR)"
     except:
-        return str(angka)
+        return f"Rp {angka} (OTR)"
 
 # ==========================================
 # 1. MESIN REKOMENDASI MOBIL (R4)
@@ -39,6 +39,26 @@ def get_rekomendasi_mobil(kriteria_user, min_harga=None, max_harga=None, top_n=5
         df = df[df['harga'] <= float(max_harga) * 1_000_000]
         
     if df.empty: return []
+
+    if df.empty: return []
+
+    # Jika tidak ada kata kunci, kembalikan hasil filter harga/brand saja dengan skor 100%
+    if not kriteria_user or kriteria_user.strip() == "":
+        hasil = []
+        for _, mobil in df.head(top_n).iterrows():
+            hasil.append({
+                'id': mobil['id'],
+                'merek': mobil['merek'], 
+                'harga': mobil['harga'],
+                'harga_format': format_angka_rupiah(mobil['harga']),
+                'jarak_tempuh': mobil['jarak_tempuh'], 
+                'tipe': mobil['tipe_kendaraan'],
+                'penumpang': mobil['kapasitas_penumpang'],
+                'baterai': mobil['kapasitas_baterai'],
+                'gambar': mobil['gambar'] if 'gambar' in mobil and pd.notna(mobil['gambar']) else '',
+                'skor_kecocokan': 100.0
+            })
+        return hasil
 
     kriteria_bersih = kriteria_user.lower()
     
@@ -90,12 +110,34 @@ def get_rekomendasi_mobil(kriteria_user, min_harga=None, max_harga=None, top_n=5
     # -------------------
 
     kamus_kriteria = {
-        "harga terjangkau": "harga_terjangkau", "harga menengah": "harga_menengah", "harga premium": "harga_premium",
-        "jarak pendek": "jarak_pendek", "jarak menengah": "jarak_menengah", "jarak jauh": "jarak_jauh",
+        # Harga
+        "harga murah": "harga_terjangkau", "murah": "harga_terjangkau", "ekonomis": "harga_terjangkau",
+        "harga menengah": "harga_menengah", "harga sedang": "harga_menengah",
+        "harga premium": "harga_premium", "mewah": "harga_premium", "mahal": "harga_premium",
+        # Jarak Tempuh
+        "jarak pendek": "jarak_pendek", "range pendek": "jarak_pendek",
+        "jarak menengah": "jarak_menengah", "range menengah": "jarak_menengah",
+        "jarak jauh": "jarak_jauh", "range jauh": "jarak_jauh", "jarak tempuh jauh": "jarak_jauh",
+        # Baterai
         "baterai kecil": "baterai_kecil", "baterai sedang": "baterai_sedang", "baterai besar": "baterai_besar",
+        "kapasitas baterai besar": "baterai_besar", "kapasitas baterai kecil": "baterai_kecil",
+        # Kapasitas Penumpang
         "4 orang": "penumpang_4", "4 penumpang": "penumpang_4", "kapasitas 4": "penumpang_4",
         "5 orang": "penumpang_5", "5 penumpang": "penumpang_5", "kapasitas 5": "penumpang_5",
         "7 orang": "penumpang_7", "7 penumpang": "penumpang_7", "kapasitas 7": "penumpang_7",
+        # Tipe Kendaraan
+        "suv": "suv", "mpv": "mpv", "hatchback": "hatchback", "sedan": "sedan",
+        "crossover": "crossover", "minivan": "minivan",
+        # Fitur Keselamatan
+        "airbag": "airbag", "abs": "abs", "kamera belakang": "kamera belakang",
+        "sensor parkir": "sensor parkir", "lane assist": "lane assist",
+        "cruise control": "cruise control", "automatic emergency braking": "automatic emergency braking",
+        # Garansi
+        "garansi panjang": "garansi_panjang", "garansi singkat": "garansi_singkat",
+        "garansi baterai": "garansi baterai", "garansi kendaraan": "garansi kendaraan",
+        # Jaringan Servis
+        "jaringan servis luas": "jaringan_servis_luas", "servis mudah": "jaringan_servis_luas",
+        "dealer resmi": "dealer resmi",
     }
     for asli, sistem in kamus_kriteria.items():
         kriteria_bersih = kriteria_bersih.replace(asli, sistem)
@@ -105,18 +147,19 @@ def get_rekomendasi_mobil(kriteria_user, min_harga=None, max_harga=None, top_n=5
     df['Baterai_Kategori'] = aman_qcut(df['kapasitas_baterai'], [0, 0.33, 0.66, 1.0], ['baterai_kecil', 'baterai_sedang', 'baterai_besar'])
 
     df['Penumpang_Kategori'] = df['kapasitas_penumpang'].astype(str).apply(lambda x: 'penumpang_' + x)
-    df['Tipe_Clean'] = df['tipe_kendaraan'].astype(str).str.replace(' ', '').str.lower()
+    df['Tipe_Clean'] = df['tipe_kendaraan'].astype(str).str.lower()
     df['Fitur_Clean'] = df['fitur_keselamatan'].astype(str).str.replace(',', ' ').str.lower()
     df['Garansi_Clean'] = df['garansi'].astype(str).str.replace(',', ' ').str.lower()
+    df['Jaringan_Clean'] = df['jaringan_servis'].astype(str).str.replace(',', ' ').str.lower() if 'jaringan_servis' in df.columns else pd.Series([''] * len(df), index=df.index)
     
     df['Baterai_Raw'] = df['kapasitas_baterai'].astype(str) + ' kwh'
     df['Jarak_Raw'] = df['jarak_tempuh'].astype(str) + ' km'
     df['Merek_Clean'] = df['merek'].astype(str).str.lower()
 
-    df['soup'] = df.apply(lambda x: ' '.join([
+    df['soup'] = df.apply(lambda x: ' '.join(str(item) for item in [
         x['Harga_Kategori'], x['Jarak_Kategori'], x['Baterai_Kategori'], 
         x['Penumpang_Kategori'], x['Tipe_Clean'], x['Fitur_Clean'], 
-        x['Garansi_Clean'], x['Baterai_Raw'], x['Jarak_Raw'], x['Merek_Clean']
+        x['Garansi_Clean'], x['Jaringan_Clean'], x['Baterai_Raw'], x['Jarak_Raw'], x['Merek_Clean']
     ]), axis=1)
 
     tfidf = TfidfVectorizer()
@@ -160,6 +203,30 @@ def get_rekomendasi_motor(kriteria_user, min_harga=None, max_harga=None, top_n=5
         
     if df.empty: return []
 
+    if df.empty: return []
+
+    # Jika tidak ada kata kunci, kembalikan hasil filter harga/brand saja dengan skor 100%
+    if not kriteria_user or kriteria_user.strip() == "":
+        hasil = []
+        for _, motor in df.head(top_n).iterrows():
+            hasil.append({
+                'id': motor['id'],
+                'merek': motor['merek'], 
+                'harga': motor['harga'],
+                'harga_format': format_angka_rupiah(motor['harga']),
+                'jarak_tempuh': motor['jarak_tempuh'], 
+                'jml_baterai': motor['jumlah_baterai'],
+                'baterai': motor['kapasitas_baterai'],
+                'kecepatan': motor['kecepatan_maksimum'],
+                'cas': motor['waktu_pengisian'],
+                'sistem_pengisian': motor['sistem_pengisian'],
+                'jenis_baterai': motor['jenis_baterai'],
+                'garansi': motor['garansi'],
+                'gambar': motor['gambar'] if 'gambar' in motor and pd.notna(motor['gambar']) else '',
+                'skor_kecocokan': 100.0
+            })
+        return hasil
+
     kriteria_bersih = kriteria_user.lower()
 
     # --- HARD FILTERS ---
@@ -202,12 +269,27 @@ def get_rekomendasi_motor(kriteria_user, min_harga=None, max_harga=None, top_n=5
     # -------------------
 
     kamus_kriteria = {
-        "harga terjangkau": "harga_terjangkau", "harga menengah": "harga_menengah", "harga premium": "harga_premium",
-        "jarak pendek": "jarak_pendek", "jarak menengah": "jarak_menengah", "jarak jauh": "jarak_jauh",
-        "cas cepat": "cas_cepat", "cas standar": "cas_standar", "cas lama": "cas_lama",
-        "kecepatan standar": "kecepatan_standar", "kecepatan tinggi": "kecepatan_tinggi",
-        "1 baterai": "baterai_1", "2 baterai": "baterai_2",
-        "direct charging": "sistem_direct_charging", "swap baterai": "sistem_swap_baterai", "tukar baterai": "sistem_swap_baterai"
+        # Harga
+        "harga murah": "harga_terjangkau", "murah": "harga_terjangkau", "ekonomis": "harga_terjangkau",
+        "harga menengah": "harga_menengah", "harga sedang": "harga_menengah",
+        "harga premium": "harga_premium", "mewah": "harga_premium",
+        # Jarak Tempuh
+        "jarak pendek": "jarak_pendek", "range pendek": "jarak_pendek",
+        "jarak menengah": "jarak_menengah", "range menengah": "jarak_menengah",
+        "jarak jauh": "jarak_jauh", "range jauh": "jarak_jauh", "jarak tempuh jauh": "jarak_jauh",
+        # Kecepatan
+        "kecepatan standar": "kecepatan_standar", "kecepatan biasa": "kecepatan_standar",
+        "kecepatan tinggi": "kecepatan_tinggi", "motor kencang": "kecepatan_tinggi", "cepat": "kecepatan_tinggi",
+        # Waktu Pengisian
+        "cas cepat": "cas_cepat", "pengisian cepat": "cas_cepat", "fast charging": "cas_cepat",
+        "cas standar": "cas_standar", "pengisian standar": "cas_standar",
+        "cas lama": "cas_lama", "pengisian lama": "cas_lama",
+        # Jumlah Baterai
+        "1 baterai": "baterai_1", "satu baterai": "baterai_1",
+        "2 baterai": "baterai_2", "dua baterai": "baterai_2",
+        # Metode Pengisian
+        "direct charging": "sistem_direct_charging", "cas langsung": "sistem_direct_charging",
+        "swap baterai": "sistem_swap_baterai", "tukar baterai": "sistem_swap_baterai", "ganti baterai": "sistem_swap_baterai",
     }
     for asli, sistem in kamus_kriteria.items():
         kriteria_bersih = kriteria_bersih.replace(asli, sistem)
@@ -218,15 +300,18 @@ def get_rekomendasi_motor(kriteria_user, min_harga=None, max_harga=None, top_n=5
     df['Cas_Kategori'] = aman_qcut(df['waktu_pengisian'], [0, 0.33, 0.66, 1.0], ['cas_cepat', 'cas_standar', 'cas_lama'])
     df['Jumlah_Baterai_Kategori'] = df['jumlah_baterai'].astype(str).apply(lambda x: 'baterai_' + x)
     df['Sistem_Pengisian_Kategori'] = df['sistem_pengisian'].astype(str).str.replace(' ', '_').str.lower().apply(lambda x: 'sistem_' + x)
+    df['Jenis_Baterai_Clean'] = df['jenis_baterai'].astype(str).str.replace(',', ' ').str.replace('none', '').str.lower()
+    df['Garansi_Clean'] = df['garansi'].astype(str).str.replace(',', ' ').str.replace('none', '').str.lower()
     
     df['Baterai_Raw'] = df['kapasitas_baterai'].astype(str) + ' kwh'
     df['Jarak_Raw'] = df['jarak_tempuh'].astype(str) + ' km'
     df['Kecepatan_Raw'] = df['kecepatan_maksimum'].astype(str) + ' km/jam'
     df['Merek_Clean'] = df['merek'].astype(str).str.lower()
     
-    df['soup'] = df.apply(lambda x: ' '.join([
+    df['soup'] = df.apply(lambda x: ' '.join(str(item) for item in [
         x['Harga_Kategori'], x['Jarak_Kategori'], x['Kecepatan_Kategori'], 
         x['Cas_Kategori'], x['Jumlah_Baterai_Kategori'], x['Sistem_Pengisian_Kategori'],
+        x['Jenis_Baterai_Clean'], x['Garansi_Clean'],
         x['Baterai_Raw'], x['Jarak_Raw'], x['Kecepatan_Raw'], x['Merek_Clean']
     ]), axis=1)
 
@@ -253,6 +338,8 @@ def get_rekomendasi_motor(kriteria_user, min_harga=None, max_harga=None, top_n=5
                 'kecepatan': motor['kecepatan_maksimum'],
                 'cas': motor['waktu_pengisian'],
                 'sistem_pengisian': motor['sistem_pengisian'],
+                'jenis_baterai': motor['jenis_baterai'],
+                'garansi': motor['garansi'],
                 'gambar': motor['gambar'] if 'gambar' in motor and pd.notna(motor['gambar']) else '',
                 'skor_kecocokan': round(sim_scores[idx] * 100, 2)
             })

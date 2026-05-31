@@ -15,11 +15,10 @@ def halaman_rekomendasi(request):
         kata_kunci = request.GET.get('kriteria')
         jenis_kendaraan = request.GET.get('jenis')
         
-        if kata_kunci.strip():
-            if jenis_kendaraan == 'mobil':
-                hasil_pencarian = get_rekomendasi_mobil(kata_kunci, min_harga=min_harga, max_harga=max_harga, top_n=5)
-            elif jenis_kendaraan == 'motor':
-                hasil_pencarian = get_rekomendasi_motor(kata_kunci, min_harga=min_harga, max_harga=max_harga, top_n=5)
+        if jenis_kendaraan == 'mobil':
+            hasil_pencarian = get_rekomendasi_mobil(kata_kunci, min_harga=min_harga, max_harga=max_harga, top_n=5)
+        elif jenis_kendaraan == 'motor':
+            hasil_pencarian = get_rekomendasi_motor(kata_kunci, min_harga=min_harga, max_harga=max_harga, top_n=5)
 
     # Grouping untuk Roda 4 (Mobil)
     mobil_raw = Mobil.objects.values_list('merek', flat=True).distinct()
@@ -47,6 +46,14 @@ def halaman_rekomendasi(request):
         merek_motor_group[brand].append({'full': nama, 'model': model})
 
     tipe_mobil = list(Mobil.objects.values_list('tipe_kendaraan', flat=True).distinct().order_by('tipe_kendaraan'))
+    kapasitas_penumpang_mobil = list(Mobil.objects.values_list('kapasitas_penumpang', flat=True).distinct().order_by('kapasitas_penumpang'))
+    jaringan_servis_mobil = list(Mobil.objects.values_list('jaringan_servis', flat=True).distinct().order_by('jaringan_servis')) if hasattr(Mobil, 'jaringan_servis') else []
+    
+    sistem_pengisian_motor = list(Motor.objects.values_list('sistem_pengisian', flat=True).distinct().order_by('sistem_pengisian'))
+    jumlah_baterai_motor = list(Motor.objects.values_list('jumlah_baterai', flat=True).distinct().order_by('jumlah_baterai'))
+    kecepatan_motor = list(Motor.objects.values_list('kecepatan_maksimum', flat=True).distinct().order_by('kecepatan_maksimum'))
+    jenis_baterai_motor = [j for j in list(Motor.objects.values_list('jenis_baterai', flat=True).distinct().order_by('jenis_baterai')) if j]
+    garansi_motor = [g for g in list(Motor.objects.values_list('garansi', flat=True).distinct().order_by('garansi')) if g]
 
     context = {
         'hasil': hasil_pencarian,
@@ -56,7 +63,14 @@ def halaman_rekomendasi(request):
         'max_harga': max_harga,
         'merek_mobil_group': merek_mobil_group,
         'tipe_mobil': tipe_mobil,
-        'merek_motor_group': merek_motor_group
+        'kapasitas_penumpang_mobil': kapasitas_penumpang_mobil,
+        'jaringan_servis_mobil': jaringan_servis_mobil,
+        'merek_motor_group': merek_motor_group,
+        'sistem_pengisian_motor': sistem_pengisian_motor,
+        'jumlah_baterai_motor': jumlah_baterai_motor,
+        'kecepatan_motor': kecepatan_motor,
+        'jenis_baterai_motor': jenis_baterai_motor,
+        'garansi_motor': garansi_motor,
     }
     
     return render(request, 'rekomendasi_app/beranda.html', context)
@@ -72,15 +86,15 @@ def kendaraan_detail(request, jenis, id):
     try:
         val = float(kendaraan.harga)
         if val >= 1_000_000_000:
-            hasil = f"{val / 1_000_000_000:.2f}".rstrip('0').rstrip('.')
-            kendaraan.harga_format = f"{hasil} Miliar"
+            hasil = round(val / 1_000_000_000, 2)
+            kendaraan.harga_format = f"Rp {hasil} Miliar (OTR)"
         elif val >= 1_000_000:
-            hasil = f"{val / 1_000_000:.2f}".rstrip('0').rstrip('.')
-            kendaraan.harga_format = f"{hasil} Juta"
+            hasil = round(val / 1_000_000, 2)
+            kendaraan.harga_format = f"Rp {hasil} Juta (OTR)"
         else:
-            kendaraan.harga_format = f"{val:,.0f}"
+            kendaraan.harga_format = f"Rp {val:,.0f} (OTR)"
     except:
-        kendaraan.harga_format = str(kendaraan.harga)
+        kendaraan.harga_format = f"Rp {kendaraan.harga} (OTR)"
 
     return render(request, 'rekomendasi_app/detail.html', {'kendaraan': kendaraan, 'jenis': jenis})
 
@@ -174,6 +188,8 @@ def dashboard_admin(request):
                     except ValueError: jb = 1
                     
                     sistem_pengisian = str(row.get('Sistem Pengisian', 'Direct Charging'))
+                    jenis_baterai = str(row.get('Jenis Baterai', ''))
+                    garansi = str(row.get('Garansi', ''))
                     
                     Motor.objects.update_or_create(
                         merek=row.get('Merek', 'Unknown'),
@@ -184,7 +200,9 @@ def dashboard_admin(request):
                             'kecepatan_maksimum': kecepatan_max,
                             'waktu_pengisian': waktu_pengisian,
                             'jumlah_baterai': jb,
-                            'sistem_pengisian': sistem_pengisian
+                            'sistem_pengisian': sistem_pengisian,
+                            'jenis_baterai': jenis_baterai,
+                            'garansi': garansi
                         }
                     )
                 messages.success(request, f'Sukses upload data {len(df)} Motor!')
@@ -233,6 +251,28 @@ def update_gambar_kendaraan(request, jenis, id):
         messages.success(request, f'Gambar untuk {kendaraan.merek} berhasil diunggah/diperbarui!')
     return redirect('dashboard_admin')
 
+from .models import FotoInteriorMobil
+
+@login_required
+@user_passes_test(is_admin)
+def upload_foto_interior(request, id):
+    if request.method == 'POST' and 'gambar_interior' in request.FILES:
+        mobil = get_object_or_404(Mobil, id=id)
+        files = request.FILES.getlist('gambar_interior')
+        for f in files:
+            FotoInteriorMobil.objects.create(mobil=mobil, gambar=f)
+        messages.success(request, f'{len(files)} Foto interior untuk {mobil.merek} berhasil ditambahkan!')
+    return redirect('dashboard_admin')
+
+@login_required
+@user_passes_test(is_admin)
+def hapus_foto_interior(request, id):
+    foto = get_object_or_404(FotoInteriorMobil, id=id)
+    mobil_merek = foto.mobil.merek
+    foto.delete()
+    messages.success(request, f'1 Foto interior {mobil_merek} berhasil dihapus!')
+    return redirect('dashboard_admin')
+
 @login_required
 @user_passes_test(is_admin)
 def update_data_kendaraan(request, jenis, id):
@@ -261,6 +301,8 @@ def update_data_kendaraan(request, jenis, id):
             kendaraan.waktu_pengisian = float(request.POST.get('waktu_pengisian', kendaraan.waktu_pengisian))
             kendaraan.jumlah_baterai = int(request.POST.get('jumlah_baterai', kendaraan.jumlah_baterai))
             kendaraan.sistem_pengisian = request.POST.get('sistem_pengisian', kendaraan.sistem_pengisian)
+            kendaraan.jenis_baterai = request.POST.get('jenis_baterai', kendaraan.jenis_baterai)
+            kendaraan.garansi = request.POST.get('garansi', kendaraan.garansi)
             kendaraan.save()
             messages.success(request, f'Data Kendaraan {kendaraan.merek} berhasil diperbarui!')
     return redirect('dashboard_admin')
@@ -295,7 +337,9 @@ def tambah_data_kendaraan(request, jenis):
                 kecepatan_maksimum=float(request.POST.get('kecepatan_maksimum', 0)),
                 waktu_pengisian=float(request.POST.get('waktu_pengisian', 0)),
                 jumlah_baterai=int(request.POST.get('jumlah_baterai', 1)),
-                sistem_pengisian=request.POST.get('sistem_pengisian', 'Direct Charging')
+                sistem_pengisian=request.POST.get('sistem_pengisian', 'Direct Charging'),
+                jenis_baterai=request.POST.get('jenis_baterai', ''),
+                garansi=request.POST.get('garansi', '')
             )
             if 'gambar' in request.FILES:
                 kendaraan.gambar = request.FILES['gambar']
@@ -303,3 +347,138 @@ def tambah_data_kendaraan(request, jenis):
             messages.success(request, f'Data Kendaraan Baru {kendaraan.merek} berhasil ditambahkan!')
             
     return redirect('dashboard_admin')
+
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+from .ml_engine import aman_qcut, format_angka_rupiah
+
+@login_required
+@user_passes_test(is_admin)
+def visualisasi_algoritma(request):
+    jenis = request.GET.get('jenis', 'mobil')
+    kriteria_user = request.GET.get('kriteria', '')
+    
+    context = {
+        'jenis': jenis,
+        'kriteria_asli': kriteria_user,
+        'kriteria_bersih': '',
+        'data_soup': [],
+        'vocab': [],
+        'query_vector': [],
+        'matrix_data': []
+    }
+    
+    if not kriteria_user:
+        return render(request, 'rekomendasi_app/visualisasi.html', context)
+        
+    kriteria_bersih = kriteria_user.lower()
+    
+    # Process Mobil
+    if jenis == 'mobil':
+        df = pd.DataFrame(list(Mobil.objects.all().values()))
+        if df.empty: return render(request, 'rekomendasi_app/visualisasi.html', context)
+        
+        kamus_kriteria = {
+            "harga murah": "harga_terjangkau", "murah": "harga_terjangkau", "ekonomis": "harga_terjangkau",
+            "harga menengah": "harga_menengah", "harga sedang": "harga_menengah",
+            "harga premium": "harga_premium", "mewah": "harga_premium", "mahal": "harga_premium",
+            "jarak pendek": "jarak_pendek", "range pendek": "jarak_pendek",
+            "jarak menengah": "jarak_menengah", "range menengah": "jarak_menengah",
+            "jarak jauh": "jarak_jauh", "range jauh": "jarak_jauh", "jarak tempuh jauh": "jarak_jauh",
+            "baterai kecil": "baterai_kecil", "baterai sedang": "baterai_sedang", "baterai besar": "baterai_besar",
+            "4 orang": "penumpang_4", "4 penumpang": "penumpang_4",
+            "5 orang": "penumpang_5", "5 penumpang": "penumpang_5",
+            "7 orang": "penumpang_7", "7 penumpang": "penumpang_7",
+            "suv": "suv", "mpv": "mpv", "hatchback": "hatchback", "sedan": "sedan",
+            "airbag": "airbag", "abs": "abs", "sensor parkir": "sensor parkir",
+            "garansi panjang": "garansi_panjang", "jaringan servis luas": "jaringan_servis_luas"
+        }
+        for asli, sistem in kamus_kriteria.items():
+            kriteria_bersih = kriteria_bersih.replace(asli, sistem)
+            
+        df['Harga_Kategori'] = aman_qcut(df['harga'], [0, 0.25, 0.75, 1.0], ['harga_terjangkau', 'harga_menengah', 'harga_premium'])
+        df['Jarak_Kategori'] = aman_qcut(df['jarak_tempuh'], [0, 0.25, 0.75, 1.0], ['jarak_pendek', 'jarak_menengah', 'jarak_jauh'])
+        df['Baterai_Kategori'] = aman_qcut(df['kapasitas_baterai'], [0, 0.33, 0.66, 1.0], ['baterai_kecil', 'baterai_sedang', 'baterai_besar'])
+        df['Penumpang_Kategori'] = df['kapasitas_penumpang'].astype(str).apply(lambda x: 'penumpang_' + x)
+        df['Tipe_Clean'] = df['tipe_kendaraan'].astype(str).str.lower()
+        df['Fitur_Clean'] = df['fitur_keselamatan'].astype(str).str.replace(',', ' ').str.lower()
+        df['Merek_Clean'] = df['merek'].astype(str).str.lower()
+
+        df['soup'] = df.apply(lambda x: ' '.join([
+            x['Harga_Kategori'], x['Jarak_Kategori'], x['Baterai_Kategori'], 
+            x['Penumpang_Kategori'], x['Tipe_Clean'], x['Fitur_Clean'], x['Merek_Clean']
+        ]), axis=1)
+
+    # Process Motor
+    else:
+        df = pd.DataFrame(list(Motor.objects.all().values()))
+        if df.empty: return render(request, 'rekomendasi_app/visualisasi.html', context)
+        
+        kamus_kriteria = {
+            "harga murah": "harga_terjangkau", "murah": "harga_terjangkau",
+            "harga menengah": "harga_menengah", "harga premium": "harga_premium", "mewah": "harga_premium",
+            "jarak pendek": "jarak_pendek", "jarak menengah": "jarak_menengah", "jarak jauh": "jarak_jauh",
+            "kecepatan standar": "kecepatan_standar", "kecepatan tinggi": "kecepatan_tinggi", "cepat": "kecepatan_tinggi",
+            "cas cepat": "cas_cepat", "cas standar": "cas_standar", "cas lama": "cas_lama",
+            "1 baterai": "baterai_1", "2 baterai": "baterai_2",
+            "direct charging": "sistem_direct_charging", "swap baterai": "sistem_swap_baterai",
+        }
+        for asli, sistem in kamus_kriteria.items():
+            kriteria_bersih = kriteria_bersih.replace(asli, sistem)
+            
+        df['Harga_Kategori'] = aman_qcut(df['harga'], [0, 0.33, 0.66, 1.0], ['harga_terjangkau', 'harga_menengah', 'harga_premium'])
+        df['Jarak_Kategori'] = aman_qcut(df['jarak_tempuh'], [0, 0.33, 0.66, 1.0], ['jarak_pendek', 'jarak_menengah', 'jarak_jauh'])
+        df['Kecepatan_Kategori'] = aman_qcut(df['kecepatan_maksimum'], [0, 0.5, 1.0], ['kecepatan_standar', 'kecepatan_tinggi'])
+        df['Cas_Kategori'] = aman_qcut(df['waktu_pengisian'], [0, 0.33, 0.66, 1.0], ['cas_cepat', 'cas_standar', 'cas_lama'])
+        df['Jumlah_Baterai_Kategori'] = df['jumlah_baterai'].astype(str).apply(lambda x: 'baterai_' + x)
+        df['Sistem_Pengisian_Kategori'] = df['sistem_pengisian'].astype(str).str.replace(' ', '_').str.lower().apply(lambda x: 'sistem_' + x)
+        df['Merek_Clean'] = df['merek'].astype(str).str.lower()
+        
+        df['soup'] = df.apply(lambda x: ' '.join([
+            x['Harga_Kategori'], x['Jarak_Kategori'], x['Kecepatan_Kategori'], 
+            x['Cas_Kategori'], x['Jumlah_Baterai_Kategori'], x['Sistem_Pengisian_Kategori'], x['Merek_Clean']
+        ]), axis=1)
+
+    # Calculate TF-IDF & Cosine Similarity
+    tfidf = TfidfVectorizer()
+    tfidf_matrix = tfidf.fit_transform(df['soup'])
+    query_vec = tfidf.transform([kriteria_bersih])
+    sim_scores = cosine_similarity(query_vec, tfidf_matrix).flatten()
+    
+    # Extract data for visualization
+    vocab = tfidf.get_feature_names_out()
+    
+    # Sort indices based on similarity scores
+    indices = sim_scores.argsort()[::-1]
+    
+    data_soup = []
+    matrix_data = []
+    
+    for idx in indices:
+        item = df.iloc[idx]
+        score = float(sim_scores[idx])
+        
+        # We limit the matrix visual to top 20 items to not crash the browser
+        if len(matrix_data) < 20:
+            data_soup.append({
+                'merek': item['merek'],
+                'harga': format_angka_rupiah(item['harga']),
+                'soup': item['soup'],
+            })
+            
+            vector = tfidf_matrix[idx].toarray()[0]
+            matrix_data.append({
+                'merek': item['merek'],
+                'score': round(score * 100, 2),
+                'vector': [round(float(v), 3) for v in vector]
+            })
+
+    context.update({
+        'kriteria_bersih': kriteria_bersih,
+        'data_soup': data_soup,
+        'vocab': list(vocab),
+        'query_vector': [round(float(v), 3) for v in query_vec.toarray()[0]],
+        'matrix_data': matrix_data
+    })
+    
+    return render(request, 'rekomendasi_app/visualisasi.html', context)

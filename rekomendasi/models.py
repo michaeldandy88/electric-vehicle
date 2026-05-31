@@ -56,6 +56,32 @@ class Mobil(BaseKendaraan):
     garansi = models.CharField(max_length=100)
     jaringan_servis = models.CharField(max_length=100)
 
+def interior_directory_path(instance, filename):
+    # Simpan di folder interior berdasarkan ID mobil
+    return f'kendaraan/roda_4/interior_{instance.mobil.id}/{filename}'
+
+class FotoInteriorMobil(models.Model):
+    mobil = models.ForeignKey(Mobil, on_delete=models.CASCADE, related_name='foto_interior')
+    gambar = models.ImageField(upload_to=interior_directory_path)
+
+    def save(self, *args, **kwargs):
+        if self.gambar:
+            nama_file = self.gambar.name
+            if not nama_file.lower().endswith('.webp'):
+                img = Image.open(self.gambar)
+                img_io = BytesIO()
+                
+                if img.mode != 'RGB':
+                    img = img.convert('RGB')
+                
+                img.save(img_io, format='WEBP', quality=85)
+                filename_baru = os.path.splitext(os.path.basename(nama_file))[0] + '.webp'
+                self.gambar.save(filename_baru, ContentFile(img_io.getvalue()), save=False)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"Interior - {self.mobil.merek}"
+
 class Motor(BaseKendaraan):
     SISTEM_PENGISIAN_CHOICES = [
         ('Direct Charging', 'Colok Langsung (Direct Charging)'),
@@ -71,3 +97,5 @@ class Motor(BaseKendaraan):
         default='Direct Charging',
         help_text="Pilih sistem/metode pengisian daya untuk motor ini"
     )
+    jenis_baterai = models.CharField(max_length=100, null=True, blank=True, help_text="Contoh: Lithium-ion, SLA")
+    garansi = models.CharField(max_length=100, null=True, blank=True)

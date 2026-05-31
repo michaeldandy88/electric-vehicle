@@ -241,6 +241,11 @@
                 </a>
             </li>
             <li class="nav-item">
+                <a class="nav-link" href="{% url 'visualisasi_algoritma' %}">
+                    <i class="fas fa-project-diagram"></i> Visualisasi Algoritma
+                </a>
+            </li>
+            <li class="nav-item">
                 <a class="nav-link" href="{% url 'beranda' %}" target="_blank">
                     <i class="fas fa-external-link-alt"></i> Ke Halaman Utama
                 </a>
@@ -250,6 +255,7 @@
 
     <!-- Main Content -->
     <div class="main-content">
+        {% block content %}
         <div class="top-header">
             <h1 class="page-title">Dashboard Overview</h1>
             <div class="d-flex align-items-center gap-3">
@@ -393,6 +399,7 @@
                                       <td>
                                           <button class="btn btn-sm btn-outline-warning" style="padding: 4px 8px;" title="Edit Data" data-val-id="{{ item.id }}" data-val-merek="{{ item.merek }}" data-val-harga="{{ item.harga }}" data-val-jarak="{{ item.jarak_tempuh }}" data-val-baterai="{{ item.kapasitas_baterai }}" data-val-penumpang="{{ item.kapasitas_penumpang }}" data-val-tipe="{{ item.tipe_kendaraan }}" data-val-fitur="{{ item.fitur_keselamatan }}" data-val-garansi="{{ item.garansi }}" data-val-jaringan="{{ item.jaringan_servis }}" onclick="openEditMobil(this)"><i class="fas fa-edit"></i></button>
                                           <button class="btn btn-sm btn-outline-primary" style="padding: 4px 8px;" onclick="openImageModal('mobil', {{ item.id }}, '{{ item.merek }}')" title="Upload Gambar"><i class="fas fa-camera"></i></button>
+                                          <button class="btn btn-sm btn-outline-info" style="padding: 4px 8px;" onclick="openInteriorModal({{ item.id }}, '{{ item.merek }}')" title="Upload Foto Interior"><i class="fas fa-couch"></i></button>
                                           <a href="{% url 'hapus_kendaraan' jenis='mobil' id=item.id %}" class="btn btn-sm btn-outline-danger" style="padding: 4px 8px;" onclick="return confirm('PERINGATAN: Yakin ingin menghapus secara permanen kendaraan {{ item.merek }}?')" title="Hapus Permanen"><i class="fas fa-trash"></i></a>
                                       </td>
                                   </tr>
@@ -441,7 +448,7 @@
                                       <td><i class="fas fa-route text-success fs-7"></i> {{ item.jarak_tempuh }} km</td>
                                       <td><i class="fas fa-battery-three-quarters text-warning fs-7"></i> {{ item.jumlah_baterai }} Slot<br><small class="text-muted"><i class="fas fa-plug text-primary fs-7"></i> {{ item.waktu_pengisian }} Jam</small></td>
                                       <td>
-                                          <button class="btn btn-sm btn-outline-warning" style="padding: 4px 8px;" title="Edit Data" data-val-id="{{ item.id }}" data-val-merek="{{ item.merek }}" data-val-harga="{{ item.harga }}" data-val-jarak="{{ item.jarak_tempuh }}" data-val-baterai="{{ item.kapasitas_baterai }}" data-val-kec="{{ item.kecepatan_maksimum }}" data-val-waktu="{{ item.waktu_pengisian }}" data-val-jumlah="{{ item.jumlah_baterai }}" data-val-sistem="{{ item.sistem_pengisian }}" onclick="openEditMotor(this)"><i class="fas fa-edit"></i></button>
+                                          <button class="btn btn-sm btn-outline-warning" style="padding: 4px 8px;" title="Edit Data" data-val-id="{{ item.id }}" data-val-merek="{{ item.merek }}" data-val-harga="{{ item.harga }}" data-val-jarak="{{ item.jarak_tempuh }}" data-val-baterai="{{ item.kapasitas_baterai }}" data-val-kec="{{ item.kecepatan_maksimum }}" data-val-waktu="{{ item.waktu_pengisian }}" data-val-jumlah="{{ item.jumlah_baterai }}" data-val-sistem="{{ item.sistem_pengisian }}" data-val-jenis-baterai="{{ item.jenis_baterai|default:'' }}" data-val-garansi="{{ item.garansi|default:'' }}" onclick="openEditMotor(this)"><i class="fas fa-edit"></i></button>
                                           <button class="btn btn-sm btn-outline-primary" style="padding: 4px 8px;" onclick="openImageModal('motor', {{ item.id }}, '{{ item.merek }}')" title="Upload Gambar"><i class="fas fa-camera"></i></button>
                                           <a href="{% url 'hapus_kendaraan' jenis='motor' id=item.id %}" class="btn btn-sm btn-outline-danger" style="padding: 4px 8px;" onclick="return confirm('PERINGATAN: Yakin ingin menghapus secara permanen kendaraan {{ item.merek }}?')" title="Hapus Permanen"><i class="fas fa-trash"></i></a>
                                       </td>
@@ -479,6 +486,33 @@
                         <div class="modal-footer border-top-0 bg-light">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batalkan</button>
                             <button type="submit" class="btn btn-primary px-4"><i class="fas fa-cloud-upload-alt me-1"></i> Mulai Upload</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Interior Upload Modal -->
+        <div class="modal fade" id="interiorUploadModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content border-0 shadow">
+                    <form method="POST" action="" enctype="multipart/form-data" id="interiorUploadForm">
+                        {% csrf_token %}
+                        <div class="modal-header bg-light border-bottom-0">
+                            <h5 class="modal-title fw-bold"><i class="fas fa-couch text-info me-2"></i> Upload Foto Interior</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body py-4">
+                            <p class="text-muted">Target Upload: <strong id="modalInteriorName" class="text-dark"></strong></p>
+                            <div class="mb-3">
+                                <label for="gambarInteriorInput" class="form-label fw-bold">Pilih File Baru (Bisa Multi File)</label>
+                                <input class="form-control" type="file" id="gambarInteriorInput" name="gambar_interior" accept="image/png, image/jpeg, image/jpg, image/webp" multiple required>
+                                <div class="form-text mt-2"><i class="fas fa-info-circle"></i> Tahan tombol CTRL (Windows) / CMD (Mac) untuk memilih lebih dari 1 file sekaligus.</div>
+                            </div>
+                        </div>
+                        <div class="modal-footer border-top-0 bg-light">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batalkan</button>
+                            <button type="submit" class="btn btn-info text-white px-4"><i class="fas fa-cloud-upload-alt me-1"></i> Mulai Upload</button>
                         </div>
                     </form>
                 </div>
@@ -588,6 +622,14 @@
                                     <option value="Swap Baterai">Swap Baterai</option>
                                     <option value="Keduanya">Bisa Keduanya</option>
                                 </select>
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label class="fw-bold">Jenis Baterai</label>
+                                <input type="text" class="form-control" name="jenis_baterai" id="edit-mt-jenis-baterai">
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label class="fw-bold">Garansi</label>
+                                <input type="text" class="form-control" name="garansi" id="edit-mt-garansi">
                             </div>
                         </div>
                         <div class="modal-footer border-top-0 bg-light">
@@ -707,6 +749,14 @@
                                     <option value="Keduanya">Bisa Keduanya</option>
                                 </select>
                             </div>
+                            <div class="col-md-6 form-group">
+                                <label class="fw-bold">Jenis Baterai</label>
+                                <input type="text" class="form-control" name="jenis_baterai" placeholder="Cth: Lithium-ion">
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label class="fw-bold">Garansi</label>
+                                <input type="text" class="form-control" name="garansi" placeholder="Cth: 3 Tahun / 50.000 km">
+                            </div>
                             <div class="col-md-12 form-group border-top pt-3 mt-3">
                                 <label class="fw-bold text-primary"><i class="fas fa-image"></i> Gambar Kendaraan (Opsional)</label>
                                 <input type="file" class="form-control" name="gambar" accept="image/png, image/jpeg, image/jpg, image/webp">
@@ -720,11 +770,18 @@
                 </div>
             </div>
         </div>
-
+        {% endblock content %}
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        function openInteriorModal(id, nama) {
+            document.getElementById('modalInteriorName').innerText = nama;
+            document.getElementById('interiorUploadForm').action = `/admin-dashboard/upload-interior/${id}/`;
+            var myModal = new bootstrap.Modal(document.getElementById('interiorUploadModal'));
+            myModal.show();
+        }
+
         // Modal Upload logic
         function openImageModal(jenis, id, nama) {
             document.getElementById('modalKendaraanName').innerText = nama;
@@ -758,6 +815,8 @@
             document.getElementById('edit-mt-waktu').value = btn.getAttribute('data-val-waktu');
             document.getElementById('edit-mt-jumlah').value = btn.getAttribute('data-val-jumlah');
             document.getElementById('edit-mt-sistem').value = btn.getAttribute('data-val-sistem');
+            document.getElementById('edit-mt-jenis-baterai').value = btn.getAttribute('data-val-jenis-baterai');
+            document.getElementById('edit-mt-garansi').value = btn.getAttribute('data-val-garansi');
             var myModal = new bootstrap.Modal(document.getElementById('editMotorModal'));
             myModal.show();
         }

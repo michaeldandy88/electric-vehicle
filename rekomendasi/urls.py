@@ -9,4 +9,7 @@ urlpatterns = [
     path('admin-dashboard/update-gambar/<str:jenis>/<int:id>/', views.update_gambar_kendaraan, name='update_gambar_kendaraan'),
     path('admin-dashboard/update-data/<str:jenis>/<int:id>/', views.update_data_kendaraan, name='update_data_kendaraan'),
     path('admin-dashboard/tambah-data/<str:jenis>/', views.tambah_data_kendaraan, name='tambah_data_kendaraan'),
+    path('admin-dashboard/upload-interior/<int:id>/', views.upload_foto_interior, name='upload_foto_interior'),
+    path('admin-dashboard/hapus-interior/<int:id>/', views.hapus_foto_interior, name='hapus_foto_interior'),
+    path('admin-dashboard/visualisasi/', views.visualisasi_algoritma, name='visualisasi_algoritma'),
 ]

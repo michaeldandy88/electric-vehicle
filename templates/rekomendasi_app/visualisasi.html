@@ -1,0 +1,149 @@
+{% extends 'rekomendasi_app/dashboard.html' %}
+
+{% block title %}Visualisasi Algoritma - Admin Dashboard{% endblock %}
+
+{% block content %}
+<style>
+    .vocab-col {
+        min-width: 120px;
+        font-size: 0.85rem;
+    }
+    .val-0 { color: #cbd5e1; }
+    .val-active { color: #0f172a; font-weight: 600; background-color: #eff6ff; }
+    .query-row { background-color: #f1f5f9; border-bottom: 2px solid #3b82f6; }
+    .soup-text { font-family: 'Courier New', Courier, monospace; font-size: 0.9rem; color: #475569; background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0;}
+</style>
+
+<div class="top-header">
+    <h1 class="page-title"><i class="fas fa-project-diagram text-primary me-2"></i> Simulasi Algoritma</h1>
+    <div class="text-muted">Content-Based Filtering & TF-IDF Cosine Similarity</div>
+</div>
+
+<!-- Simulation Form -->
+<div class="card border-0 shadow-sm rounded-4 mb-4">
+    <div class="card-body p-4">
+        <form method="GET" action="{% url 'visualisasi_algoritma' %}">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Pilih Kendaraan</label>
+                    <select name="jenis" class="form-select border-2">
+                        <option value="mobil" {% if jenis == 'mobil' %}selected{% endif %}>Mobil (R4)</option>
+                        <option value="motor" {% if jenis == 'motor' %}selected{% endif %}>Motor (R2)</option>
+                    </select>
+                </div>
+                <div class="col-md-7">
+                    <label class="form-label fw-bold">Kueri Pengguna (Natural Language)</label>
+                    <input type="text" name="kriteria" class="form-control border-2" value="{{ kriteria_asli }}" placeholder="Cth: suv murah jarak jauh" required>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100 fw-bold"><i class="fas fa-play me-2"></i> Simulasikan</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if kriteria_asli %}
+<!-- Step 1: Preprocessing -->
+<div class="card border-0 shadow-sm rounded-4 mb-4 border-start border-4 border-info">
+    <div class="card-body p-4">
+        <h5 class="fw-bold mb-3"><span class="badge bg-info text-white me-2">Tahap 1</span> Pembersihan Kueri (Preprocessing)</h5>
+        <div class="row align-items-center">
+            <div class="col-md-5">
+                <div class="p-3 bg-light rounded-3 border">
+                    <small class="text-muted d-block mb-1">Input Asli (Natural):</small>
+                    <strong class="text-dark fs-5">"{{ kriteria_asli }}"</strong>
+                </div>
+            </div>
+            <div class="col-md-2 text-center text-muted">
+                <i class="fas fa-arrow-right fa-2x"></i><br>
+                <small>Kamus Kriteria</small>
+            </div>
+            <div class="col-md-5">
+                <div class="p-3 bg-info bg-opacity-10 border border-info rounded-3">
+                    <small class="text-muted d-block mb-1">Hasil Terjemahan Sistem (Token):</small>
+                    <strong class="text-info fs-5">"{{ kriteria_bersih }}"</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Step 2: Content Based Filtering -->
+<div class="card border-0 shadow-sm rounded-4 mb-4 border-start border-4 border-warning">
+    <div class="card-body p-4">
+        <h5 class="fw-bold mb-3"><span class="badge bg-warning text-dark me-2">Tahap 2</span> Content-Based Filtering (Item Profiling)</h5>
+        <p class="text-muted">Atribut kendaraan diubah menjadi teks (Discretization) lalu digabungkan menjadi satu paragraf <em>Metadata Soup</em>.</p>
+        
+        <div class="table-responsive" style="max-height: 300px;">
+            <table class="table table-hover table-bordered">
+                <thead class="table-light sticky-top">
+                    <tr>
+                        <th width="50">Rank</th>
+                        <th width="200">Kendaraan</th>
+                        <th>Metadata Soup (Teks Profil Kendaraan)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in data_soup %}
+                    <tr>
+                        <td class="text-center fw-bold">{{ forloop.counter }}</td>
+                        <td><strong>{{ item.merek }}</strong><br><small class="text-muted">{{ item.harga }}</small></td>
+                        <td><div class="soup-text">{{ item.soup }}</div></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Step 3 & 4: TF-IDF & Cosine Similarity -->
+<div class="card border-0 shadow-sm rounded-4 mb-5 border-start border-4 border-success">
+    <div class="card-body p-4">
+        <h5 class="fw-bold mb-3"><span class="badge bg-success me-2">Tahap 3 & 4</span> TF-IDF Matrix & Cosine Similarity</h5>
+        <p class="text-muted mb-2">Teks <em>Soup</em> dikonversi menjadi bobot desimal (TF-IDF), lalu dihitung jarak kosinusnya dengan vektor Kueri Pengguna.</p>
+        <div class="mb-3">
+            <span class="badge bg-light text-dark border"><i class="fas fa-book"></i> Total Kosakata (Vocabulary): {{ vocab|length }} fitur kata</span>
+        </div>
+        
+        <div class="table-responsive shadow-sm rounded border">
+            <table class="table table-bordered mb-0 text-center align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th class="sticky-top" style="min-width: 200px; left:0; z-index: 2;">Kueri / Kendaraan</th>
+                        <th class="sticky-top bg-success" style="min-width: 120px; z-index: 1;">Match Score</th>
+                        {% for word in vocab %}
+                        <th class="sticky-top vocab-col" style="z-index: 1;">{{ word }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Query Vector Row -->
+                    <tr class="query-row fw-bold">
+                        <td class="sticky-top" style="left:0; z-index: 1; background-color: #f1f5f9;"><i class="fas fa-user-circle text-primary me-2"></i>Vektor Kueri</td>
+                        <td>-</td>
+                        {% for val in query_vector %}
+                        <td class="{% if val > 0 %}text-primary{% else %}val-0{% endif %}">{{ val|floatformat:3 }}</td>
+                        {% endfor %}
+                    </tr>
+                    
+                    <!-- Vehicle Vectors -->
+                    {% for item in matrix_data %}
+                    <tr>
+                        <td class="sticky-top fw-bold text-start bg-white" style="left:0; z-index: 1;">{{ item.merek }}</td>
+                        <td class="fw-bold fs-5 text-success">{{ item.score }}%</td>
+                        {% for val in item.vector %}
+                        <td class="{% if val > 0 %}val-active{% else %}val-0{% endif %}">{{ val|floatformat:3 }}</td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="text-muted small mt-2">*Hanya menampilkan Top 20 kendaraan berdasarkan kecocokan tertinggi untuk alasan kinerja.</div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

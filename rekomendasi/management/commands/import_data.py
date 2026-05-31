@@ -102,7 +102,9 @@ class Command(BaseCommand):
                         kecepatan_maksimum=row['Kecepatan Maksimum'],
                         kapasitas_baterai=row['Kapasitas Baterai'],
                         waktu_pengisian=row['Waktu Pengisian'],
-                        jumlah_baterai=row.get('Jumlah Baterai', 1) 
+                        jumlah_baterai=row.get('Jumlah Baterai', 1),
+                        jenis_baterai=row.get('Jenis Baterai', ''),
+                        garansi=row.get('Garansi', '')
                     )
                     total_r2 += 1
                 except Exception as e:
