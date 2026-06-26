@@ -1,4 +1,5 @@
 import pandas as pd
+import re
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from .models import Mobil, Motor
@@ -139,8 +140,11 @@ def get_rekomendasi_mobil(kriteria_user, min_harga=None, max_harga=None, top_n=5
         "jaringan servis luas": "jaringan_servis_luas", "servis mudah": "jaringan_servis_luas",
         "dealer resmi": "dealer resmi",
     }
-    for asli, sistem in kamus_kriteria.items():
-        kriteria_bersih = kriteria_bersih.replace(asli, sistem)
+    sorted_keys = sorted(kamus_kriteria.keys(), key=len, reverse=True)
+    for asli in sorted_keys:
+        sistem = kamus_kriteria[asli]
+        pattern = r'\b' + re.escape(asli) + r'\b'
+        kriteria_bersih = re.sub(pattern, sistem, kriteria_bersih)
 
     df['Harga_Kategori'] = aman_qcut(df['harga'], [0, 0.25, 0.75, 1.0], ['harga_terjangkau', 'harga_menengah', 'harga_premium'])
     df['Jarak_Kategori'] = aman_qcut(df['jarak_tempuh'], [0, 0.25, 0.75, 1.0], ['jarak_pendek', 'jarak_menengah', 'jarak_jauh'])
@@ -291,8 +295,11 @@ def get_rekomendasi_motor(kriteria_user, min_harga=None, max_harga=None, top_n=5
         "direct charging": "sistem_direct_charging", "cas langsung": "sistem_direct_charging",
         "swap baterai": "sistem_swap_baterai", "tukar baterai": "sistem_swap_baterai", "ganti baterai": "sistem_swap_baterai",
     }
-    for asli, sistem in kamus_kriteria.items():
-        kriteria_bersih = kriteria_bersih.replace(asli, sistem)
+    sorted_keys = sorted(kamus_kriteria.keys(), key=len, reverse=True)
+    for asli in sorted_keys:
+        sistem = kamus_kriteria[asli]
+        pattern = r'\b' + re.escape(asli) + r'\b'
+        kriteria_bersih = re.sub(pattern, sistem, kriteria_bersih)
 
     df['Harga_Kategori'] = aman_qcut(df['harga'], [0, 0.33, 0.66, 1.0], ['harga_terjangkau', 'harga_menengah', 'harga_premium'])
     df['Jarak_Kategori'] = aman_qcut(df['jarak_tempuh'], [0, 0.33, 0.66, 1.0], ['jarak_pendek', 'jarak_menengah', 'jarak_jauh'])

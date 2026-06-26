@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-p@bqtenb2#d9w9pn!6q*kl-kbfpa^jp%8@hrd1oaza%fz(ssa-
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['pilihev.com', 'www.pilihev.com', '127.0.0.1', '*']
+ALLOWED_HOSTS = ['pilihev.com', 'www.pilihev.com', '127.0.0.1', 'localhost', '*']
 
 
 # Application definition
@@ -78,10 +78,10 @@ WSGI_APPLICATION = 'ev_config.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'pilihevc_db_pilihev',
-        'USER': 'admin1@pilihev.com',
-        'PASSWORD': '-c%yJ&y~M;@e-]VZ',
-        'HOST': '127.0.0.1',
+        'NAME': 'db_ev',
+        'USER': 'root',
+        'PASSWORD': '',
+        'HOST': 'localhost',
         'PORT': '3306',
         'OPTIONS': {
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",

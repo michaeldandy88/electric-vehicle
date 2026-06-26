@@ -366,7 +366,10 @@
                   <div class="tab-pane fade show active" id="mobilData" role="tabpanel">
                       <div class="d-flex justify-content-between align-items-center mb-3">
                           <h5 class="fw-bold m-0 text-dark" style="font-size: 1.1rem;">Daftar Mobil (R4)</h5>
-                          <button class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#tambahMobilModal"><i class="fas fa-plus me-1"></i> Tambah Mobil Baru</button>
+                          <div class="d-flex gap-2">
+                              <a href="{% url 'download_dataset' jenis='mobil' %}" class="btn btn-outline-success btn-sm rounded-pill px-3 shadow-sm"><i class="fas fa-file-download me-1"></i> Download CSV</a>
+                              <button class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#tambahMobilModal"><i class="fas fa-plus me-1"></i> Tambah Mobil Baru</button>
+                          </div>
                       </div>
                       <div class="table-responsive">
                           <table class="table table-hover align-middle">
@@ -415,7 +418,10 @@
                   <div class="tab-pane fade" id="motorData" role="tabpanel">
                       <div class="d-flex justify-content-between align-items-center mb-3">
                           <h5 class="fw-bold m-0 text-dark" style="font-size: 1.1rem;">Daftar Motor (R2)</h5>
-                          <button class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#tambahMotorModal"><i class="fas fa-plus me-1"></i> Tambah Motor Baru</button>
+                          <div class="d-flex gap-2">
+                              <a href="{% url 'download_dataset' jenis='motor' %}" class="btn btn-outline-success btn-sm rounded-pill px-3 shadow-sm"><i class="fas fa-file-download me-1"></i> Download CSV</a>
+                              <button class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#tambahMotorModal"><i class="fas fa-plus me-1"></i> Tambah Motor Baru</button>
+                          </div>
                       </div>
                       <div class="table-responsive">
                           <table class="table table-hover align-middle">

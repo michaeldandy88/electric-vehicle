@@ -12,4 +12,5 @@ urlpatterns = [
     path('admin-dashboard/upload-interior/<int:id>/', views.upload_foto_interior, name='upload_foto_interior'),
     path('admin-dashboard/hapus-interior/<int:id>/', views.hapus_foto_interior, name='hapus_foto_interior'),
     path('admin-dashboard/visualisasi/', views.visualisasi_algoritma, name='visualisasi_algoritma'),
+    path('admin-dashboard/download/<str:jenis>/', views.download_dataset, name='download_dataset'),
 ]

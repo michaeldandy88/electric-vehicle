@@ -1,4 +1,5 @@
 import pandas as pd
+import re
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from .models import Mobil, Motor
@@ -378,35 +379,106 @@ def visualisasi_algoritma(request):
         df = pd.DataFrame(list(Mobil.objects.all().values()))
         if df.empty: return render(request, 'rekomendasi_app/visualisasi.html', context)
         
+        # --- HARD FILTERS ---
+        semua_tipe_awal = df['tipe_kendaraan'].dropna().unique()
+        tipe_terdaftar_awal = list(set([str(t).lower().strip() for t in semua_tipe_awal if str(t).strip() != '']))
+
+        merek_terdaftar = df['merek'].unique()
+        brand_keywords = list(set([m.split()[0].lower() for m in merek_terdaftar]))
+        
+        found_exact_models = [m for m in merek_terdaftar if m.lower() in kriteria_bersih]
+        if found_exact_models:
+            df = df[df['merek'].isin(found_exact_models)]
+        else:
+            found_brands = [b for b in brand_keywords if b in kriteria_bersih.split()]
+            if found_brands:
+                kondisi = pd.Series([False]*len(df), index=df.index)
+                for b in found_brands:
+                    kondisi = kondisi | df['merek'].str.lower().str.startswith(b.lower())
+                df = df[kondisi]
+
+        if df.empty: return render(request, 'rekomendasi_app/visualisasi.html', context)
+
+        found_types = []
+        for t in tipe_terdaftar_awal:
+            if len(t.split()) > 1:
+                if t in kriteria_bersih:
+                    found_types.append(t)
+            else:
+                if t in kriteria_bersih.split():
+                    found_types.append(t)
+                    
+        if found_types:
+            kondisi = pd.Series([False]*len(df), index=df.index)
+            for t in found_types:
+                kondisi = kondisi | (df['tipe_kendaraan'].str.lower() == t)
+            df = df[kondisi]
+                
+        if df.empty: return render(request, 'rekomendasi_app/visualisasi.html', context)
+
+        penumpang_umum = ['4 penumpang', '5 penumpang', '7 penumpang']
+        for p in penumpang_umum:
+            if p in kriteria_bersih:
+                kap = int(p.split()[0])
+                df = df[df['kapasitas_penumpang'] == kap]
+
+        if df.empty: return render(request, 'rekomendasi_app/visualisasi.html', context)
+        # -------------------
+        
         kamus_kriteria = {
+            # Harga
             "harga murah": "harga_terjangkau", "murah": "harga_terjangkau", "ekonomis": "harga_terjangkau",
             "harga menengah": "harga_menengah", "harga sedang": "harga_menengah",
             "harga premium": "harga_premium", "mewah": "harga_premium", "mahal": "harga_premium",
+            # Jarak Tempuh
             "jarak pendek": "jarak_pendek", "range pendek": "jarak_pendek",
             "jarak menengah": "jarak_menengah", "range menengah": "jarak_menengah",
             "jarak jauh": "jarak_jauh", "range jauh": "jarak_jauh", "jarak tempuh jauh": "jarak_jauh",
+            # Baterai
             "baterai kecil": "baterai_kecil", "baterai sedang": "baterai_sedang", "baterai besar": "baterai_besar",
-            "4 orang": "penumpang_4", "4 penumpang": "penumpang_4",
-            "5 orang": "penumpang_5", "5 penumpang": "penumpang_5",
-            "7 orang": "penumpang_7", "7 penumpang": "penumpang_7",
+            "kapasitas baterai besar": "baterai_besar", "kapasitas baterai kecil": "baterai_kecil",
+            # Kapasitas Penumpang
+            "4 orang": "penumpang_4", "4 penumpang": "penumpang_4", "kapasitas 4": "penumpang_4",
+            "5 orang": "penumpang_5", "5 penumpang": "penumpang_5", "kapasitas 5": "penumpang_5",
+            "7 orang": "penumpang_7", "7 penumpang": "penumpang_7", "kapasitas 7": "penumpang_7",
+            # Tipe Kendaraan
             "suv": "suv", "mpv": "mpv", "hatchback": "hatchback", "sedan": "sedan",
-            "airbag": "airbag", "abs": "abs", "sensor parkir": "sensor parkir",
-            "garansi panjang": "garansi_panjang", "jaringan servis luas": "jaringan_servis_luas"
+            "crossover": "crossover", "minivan": "minivan",
+            # Fitur Keselamatan
+            "airbag": "airbag", "abs": "abs", "kamera belakang": "kamera belakang",
+            "sensor parkir": "sensor parkir", "lane assist": "lane assist",
+            "cruise control": "cruise control", "automatic emergency braking": "automatic emergency braking",
+            # Garansi
+            "garansi panjang": "garansi_panjang", "garansi singkat": "garansi_singkat",
+            "garansi baterai": "garansi baterai", "garansi kendaraan": "garansi kendaraan",
+            # Jaringan Servis
+            "jaringan servis luas": "jaringan_servis_luas", "servis mudah": "jaringan_servis_luas",
+            "dealer resmi": "dealer resmi",
         }
-        for asli, sistem in kamus_kriteria.items():
-            kriteria_bersih = kriteria_bersih.replace(asli, sistem)
+        sorted_keys = sorted(kamus_kriteria.keys(), key=len, reverse=True)
+        for asli in sorted_keys:
+            sistem = kamus_kriteria[asli]
+            pattern = r'\b' + re.escape(asli) + r'\b'
+            kriteria_bersih = re.sub(pattern, sistem, kriteria_bersih)
             
         df['Harga_Kategori'] = aman_qcut(df['harga'], [0, 0.25, 0.75, 1.0], ['harga_terjangkau', 'harga_menengah', 'harga_premium'])
         df['Jarak_Kategori'] = aman_qcut(df['jarak_tempuh'], [0, 0.25, 0.75, 1.0], ['jarak_pendek', 'jarak_menengah', 'jarak_jauh'])
         df['Baterai_Kategori'] = aman_qcut(df['kapasitas_baterai'], [0, 0.33, 0.66, 1.0], ['baterai_kecil', 'baterai_sedang', 'baterai_besar'])
+
         df['Penumpang_Kategori'] = df['kapasitas_penumpang'].astype(str).apply(lambda x: 'penumpang_' + x)
         df['Tipe_Clean'] = df['tipe_kendaraan'].astype(str).str.lower()
         df['Fitur_Clean'] = df['fitur_keselamatan'].astype(str).str.replace(',', ' ').str.lower()
+        df['Garansi_Clean'] = df['garansi'].astype(str).str.replace(',', ' ').str.lower()
+        df['Jaringan_Clean'] = df['jaringan_servis'].astype(str).str.replace(',', ' ').str.lower() if 'jaringan_servis' in df.columns else pd.Series([''] * len(df), index=df.index)
+        
+        df['Baterai_Raw'] = df['kapasitas_baterai'].astype(str) + ' kwh'
+        df['Jarak_Raw'] = df['jarak_tempuh'].astype(str) + ' km'
         df['Merek_Clean'] = df['merek'].astype(str).str.lower()
 
-        df['soup'] = df.apply(lambda x: ' '.join([
+        df['soup'] = df.apply(lambda x: ' '.join(str(item) for item in [
             x['Harga_Kategori'], x['Jarak_Kategori'], x['Baterai_Kategori'], 
-            x['Penumpang_Kategori'], x['Tipe_Clean'], x['Fitur_Clean'], x['Merek_Clean']
+            x['Penumpang_Kategori'], x['Tipe_Clean'], x['Fitur_Clean'], 
+            x['Garansi_Clean'], x['Jaringan_Clean'], x['Baterai_Raw'], x['Jarak_Raw'], x['Merek_Clean']
         ]), axis=1)
 
     # Process Motor
@@ -414,17 +486,73 @@ def visualisasi_algoritma(request):
         df = pd.DataFrame(list(Motor.objects.all().values()))
         if df.empty: return render(request, 'rekomendasi_app/visualisasi.html', context)
         
+        # --- HARD FILTERS ---
+        merek_terdaftar = df['merek'].unique()
+        brand_keywords = list(set([m.split()[0].lower() for m in merek_terdaftar]))
+        
+        found_exact_models = [m for m in merek_terdaftar if m.lower() in kriteria_bersih]
+        if found_exact_models:
+            df = df[df['merek'].isin(found_exact_models)]
+        else:
+            found_brands = [b for b in brand_keywords if b in kriteria_bersih.split()]
+            if found_brands:
+                kondisi = pd.Series([False]*len(df), index=df.index)
+                for b in found_brands:
+                    kondisi = kondisi | df['merek'].str.lower().str.startswith(b.lower())
+                df = df[kondisi]
+
+        if df.empty: return render(request, 'rekomendasi_app/visualisasi.html', context)
+
+        is_direct = "direct charging" in kriteria_bersih
+        is_swap = "swap baterai" in kriteria_bersih
+        
+        if is_direct or is_swap:
+            kondisi = pd.Series([False]*len(df), index=df.index)
+            if is_direct:
+                kondisi = kondisi | df['sistem_pengisian'].str.lower().str.contains('direct')
+            if is_swap:
+                kondisi = kondisi | df['sistem_pengisian'].str.lower().str.contains('swap')
+            kondisi = kondisi | df['sistem_pengisian'].str.lower().str.contains('keduanya')
+            df = df[kondisi]
+
+        if df.empty: return render(request, 'rekomendasi_app/visualisasi.html', context)
+
+        if "1 baterai" in kriteria_bersih:
+            df = df[df['jumlah_baterai'] == 1]
+        if "2 baterai" in kriteria_bersih:
+            df = df[df['jumlah_baterai'] == 2]
+
+        if df.empty: return render(request, 'rekomendasi_app/visualisasi.html', context)
+        # -------------------
+        
         kamus_kriteria = {
-            "harga murah": "harga_terjangkau", "murah": "harga_terjangkau",
-            "harga menengah": "harga_menengah", "harga premium": "harga_premium", "mewah": "harga_premium",
-            "jarak pendek": "jarak_pendek", "jarak menengah": "jarak_menengah", "jarak jauh": "jarak_jauh",
-            "kecepatan standar": "kecepatan_standar", "kecepatan tinggi": "kecepatan_tinggi", "cepat": "kecepatan_tinggi",
-            "cas cepat": "cas_cepat", "cas standar": "cas_standar", "cas lama": "cas_lama",
-            "1 baterai": "baterai_1", "2 baterai": "baterai_2",
-            "direct charging": "sistem_direct_charging", "swap baterai": "sistem_swap_baterai",
+            # Harga
+            "harga murah": "harga_terjangkau", "murah": "harga_terjangkau", "ekonomis": "harga_terjangkau",
+            "harga menengah": "harga_menengah", "harga sedang": "harga_menengah",
+            "harga premium": "harga_premium", "mewah": "harga_premium",
+            # Jarak Tempuh
+            "jarak pendek": "jarak_pendek", "range pendek": "jarak_pendek",
+            "jarak menengah": "jarak_menengah", "range menengah": "jarak_menengah",
+            "jarak jauh": "jarak_jauh", "range jauh": "jarak_jauh", "jarak tempuh jauh": "jarak_jauh",
+            # Kecepatan
+            "kecepatan standar": "kecepatan_standar", "kecepatan biasa": "kecepatan_standar",
+            "kecepatan tinggi": "kecepatan_tinggi", "motor kencang": "kecepatan_tinggi", "cepat": "kecepatan_tinggi",
+            # Waktu Pengisian
+            "cas cepat": "cas_cepat", "pengisian cepat": "cas_cepat", "fast charging": "cas_cepat",
+            "cas standar": "cas_standar", "pengisian standar": "cas_standar",
+            "cas lama": "cas_lama", "pengisian lama": "cas_lama",
+            # Jumlah Baterai
+            "1 baterai": "baterai_1", "satu baterai": "baterai_1",
+            "2 baterai": "baterai_2", "dua baterai": "baterai_2",
+            # Metode Pengisian
+            "direct charging": "sistem_direct_charging", "cas langsung": "sistem_direct_charging",
+            "swap baterai": "sistem_swap_baterai", "tukar baterai": "sistem_swap_baterai", "ganti baterai": "sistem_swap_baterai",
         }
-        for asli, sistem in kamus_kriteria.items():
-            kriteria_bersih = kriteria_bersih.replace(asli, sistem)
+        sorted_keys = sorted(kamus_kriteria.keys(), key=len, reverse=True)
+        for asli in sorted_keys:
+            sistem = kamus_kriteria[asli]
+            pattern = r'\b' + re.escape(asli) + r'\b'
+            kriteria_bersih = re.sub(pattern, sistem, kriteria_bersih)
             
         df['Harga_Kategori'] = aman_qcut(df['harga'], [0, 0.33, 0.66, 1.0], ['harga_terjangkau', 'harga_menengah', 'harga_premium'])
         df['Jarak_Kategori'] = aman_qcut(df['jarak_tempuh'], [0, 0.33, 0.66, 1.0], ['jarak_pendek', 'jarak_menengah', 'jarak_jauh'])
@@ -432,11 +560,19 @@ def visualisasi_algoritma(request):
         df['Cas_Kategori'] = aman_qcut(df['waktu_pengisian'], [0, 0.33, 0.66, 1.0], ['cas_cepat', 'cas_standar', 'cas_lama'])
         df['Jumlah_Baterai_Kategori'] = df['jumlah_baterai'].astype(str).apply(lambda x: 'baterai_' + x)
         df['Sistem_Pengisian_Kategori'] = df['sistem_pengisian'].astype(str).str.replace(' ', '_').str.lower().apply(lambda x: 'sistem_' + x)
+        df['Jenis_Baterai_Clean'] = df['jenis_baterai'].astype(str).str.replace(',', ' ').str.replace('none', '').str.lower()
+        df['Garansi_Clean'] = df['garansi'].astype(str).str.replace(',', ' ').str.replace('none', '').str.lower()
+        
+        df['Baterai_Raw'] = df['kapasitas_baterai'].astype(str) + ' kwh'
+        df['Jarak_Raw'] = df['jarak_tempuh'].astype(str) + ' km'
+        df['Kecepatan_Raw'] = df['kecepatan_maksimum'].astype(str) + ' km/jam'
         df['Merek_Clean'] = df['merek'].astype(str).str.lower()
         
-        df['soup'] = df.apply(lambda x: ' '.join([
+        df['soup'] = df.apply(lambda x: ' '.join(str(item) for item in [
             x['Harga_Kategori'], x['Jarak_Kategori'], x['Kecepatan_Kategori'], 
-            x['Cas_Kategori'], x['Jumlah_Baterai_Kategori'], x['Sistem_Pengisian_Kategori'], x['Merek_Clean']
+            x['Cas_Kategori'], x['Jumlah_Baterai_Kategori'], x['Sistem_Pengisian_Kategori'],
+            x['Jenis_Baterai_Clean'], x['Garansi_Clean'],
+            x['Baterai_Raw'], x['Jarak_Raw'], x['Kecepatan_Raw'], x['Merek_Clean']
         ]), axis=1)
 
     # Calculate TF-IDF & Cosine Similarity
@@ -482,3 +618,66 @@ def visualisasi_algoritma(request):
     })
     
     return render(request, 'rekomendasi_app/visualisasi.html', context)
+
+@login_required
+@user_passes_test(is_admin)
+def download_dataset(request, jenis):
+    import csv
+    from django.http import HttpResponse
+    
+    response = HttpResponse(content_type='text/csv; charset=utf-8')
+    
+    if jenis == 'mobil':
+        response['Content-Disposition'] = 'attachment; filename="dataset_mobil.csv"'
+        writer = csv.writer(response)
+        
+        # Write headers
+        writer.writerow([
+            'Merek Mobil', 'Harga', 'Jarak Tempuh', 'Kapasitas Baterai',
+            'Kapasitas Penumpang', 'Tipe Kendaraan', 'Fitur Keselamatan',
+            'Garansi', 'Jaringan Servis'
+        ])
+        
+        # Write rows
+        for item in Mobil.objects.all().order_by('id'):
+            writer.writerow([
+                item.merek,
+                int(item.harga) if item.harga.is_integer() else item.harga,
+                int(item.jarak_tempuh) if item.jarak_tempuh.is_integer() else item.jarak_tempuh,
+                int(item.kapasitas_baterai) if item.kapasitas_baterai.is_integer() else item.kapasitas_baterai,
+                item.kapasitas_penumpang,
+                item.tipe_kendaraan,
+                item.fitur_keselamatan,
+                item.garansi,
+                item.jaringan_servis
+            ])
+            
+    elif jenis == 'motor':
+        response['Content-Disposition'] = 'attachment; filename="dataset_motor.csv"'
+        writer = csv.writer(response)
+        
+        # Write headers
+        writer.writerow([
+            'Merek', 'Harga', 'Jarak Tempuh', 'Kecepatan Maksimum',
+            'Kapasitas Baterai', 'Waktu Pengisian', 'Jumlah Baterai',
+            'Sistem Pengisian', 'Jenis Baterai', 'Garansi'
+        ])
+        
+        # Write rows
+        for item in Motor.objects.all().order_by('id'):
+            writer.writerow([
+                item.merek,
+                int(item.harga) if item.harga.is_integer() else item.harga,
+                int(item.jarak_tempuh) if item.jarak_tempuh.is_integer() else item.jarak_tempuh,
+                int(item.kecepatan_maksimum) if item.kecepatan_maksimum.is_integer() else item.kecepatan_maksimum,
+                int(item.kapasitas_baterai) if item.kapasitas_baterai.is_integer() else item.kapasitas_baterai,
+                int(item.waktu_pengisian) if item.waktu_pengisian.is_integer() else item.waktu_pengisian,
+                item.jumlah_baterai,
+                item.sistem_pengisian,
+                item.jenis_baterai,
+                item.garansi
+            ])
+    else:
+        return redirect('dashboard_admin')
+        
+    return response
