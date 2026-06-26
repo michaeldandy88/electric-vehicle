@@ -13,8 +13,8 @@ class Command(BaseCommand):
         queries = [
             # --- 50 Kueri Mobil ---
             "mobil murah",
-            "mobil premium",
-            "mobil menengah",
+            "mobil mewah",
+            "mobil harga menengah",
             "mobil suv",
             "mobil hatchback",
             "mobil mpv",
@@ -28,19 +28,19 @@ class Command(BaseCommand):
             "mobil byd",
             "mobil tesla",
             "mobil suv murah",
-            "mobil suv premium",
+            "mobil suv mewah",
             "mobil hatchback murah",
-            "mobil hatchback premium",
+            "mobil hatchback mewah",
             "mobil mpv murah",
             "mobil mpv keluarga",
-            "mobil sedan premium",
+            "mobil sedan mewah",
             "mobil 5 penumpang murah",
             "mobil 7 penumpang keluarga",
-            "mobil jarak jauh premium",
-            "mobil hyundai premium",
+            "mobil mewah jarak jauh",
+            "mobil hyundai mewah",
             "mobil wuling murah",
-            "mobil byd premium",
-            "mobil tesla premium",
+            "mobil byd mewah",
+            "mobil tesla mewah",
             "mobil suv jarak jauh",
             "mobil hatchback jarak jauh",
             "mobil mpv jarak jauh",
@@ -56,7 +56,7 @@ class Command(BaseCommand):
             "mobil hyundai suv",
             "mobil byd suv",
             "mobil tesla sedan",
-            "mobil bmw premium",
+            "mobil bmw mewah",
             "mobil gwm murah",
             "mobil gac suv",
             "mobil chery suv",
@@ -65,8 +65,8 @@ class Command(BaseCommand):
 
             # --- 50 Kueri Motor ---
             "motor murah",
-            "motor premium",
-            "motor menengah",
+            "motor mewah",
+            "motor harga menengah",
             "motor jarak jauh",
             "motor cas cepat",
             "motor fast charging",
@@ -80,14 +80,14 @@ class Command(BaseCommand):
             "motor kecepatan tinggi",
             "motor kencang",
             "motor murah swap",
-            "motor premium swap",
+            "motor mewah swap",
             "motor polytron murah",
-            "motor alva premium",
+            "motor alva mewah",
             "motor alva swap",
             "motor yadea murah",
             "motor cas cepat murah",
-            "motor jarak jauh premium",
-            "motor kecepatan tinggi premium",
+            "motor mewah jarak jauh",
+            "motor kecepatan tinggi mewah",
             "motor dengan lithium",
             "motor garansi panjang",
             "motor polytron fox",
@@ -98,12 +98,12 @@ class Command(BaseCommand):
             "motor dengan direct charging",
             "motor kecepatan tinggi swap",
             "motor murah 1 baterai",
-            "motor premium 2 baterai",
+            "motor mewah 2 baterai",
             "motor dengan swap dan direct",
             "motor jangkauan jauh",
             "motor pengisian standar",
             "motor murah meriah",
-            "motor mewah premium",
+            "motor mewah",
             "motor harian murah",
             "motor petualang jarak jauh",
             "motor alva one",
@@ -126,8 +126,11 @@ class Command(BaseCommand):
         def is_relevant(query_str, instance, item_type):
             q = query_str.lower()
             
-            # Merek/Brand Check
-            brands = ['hyundai', 'wuling', 'byd', 'tesla', 'bmw', 'gwm', 'gac', 'chery', 'dfsk', 'mini', 'polytron', 'alva', 'yadea']
+            # Merek/Brand Check (Dibuat dinamis mengambil kata pertama merek dari database)
+            db_brands_mobil = list(Mobil.objects.values_list('merek', flat=True).distinct())
+            db_brands_motor = list(Motor.objects.values_list('merek', flat=True).distinct())
+            brands = list(set([m.split()[0].lower() for m in (db_brands_mobil + db_brands_motor) if m]))
+            
             for b in brands:
                 if b in q:
                     if b not in instance.merek.lower():
@@ -259,16 +262,16 @@ class Command(BaseCommand):
             # Safety Features Check (for Mobil)
             if item_type == 'mobil':
                 if 'airbag' in q:
-                    if 'airbag' not in instance.fitur_keselamatan.lower():
+                    if 'airbag' not in instance.fitur_keselamatan.lower() and 'kantong udara' not in instance.fitur_keselamatan.lower():
                         return False
                 if 'abs' in q:
-                    if 'abs' not in instance.fitur_keselamatan.lower():
+                    if 'abs' not in instance.fitur_keselamatan.lower() and 'anti lock' not in instance.fitur_keselamatan.lower() and 'anti-lock' not in instance.fitur_keselamatan.lower():
                         return False
                 if 'kamera belakang' in q:
-                    if 'kamera' not in instance.fitur_keselamatan.lower():
+                    if 'kamera' not in instance.fitur_keselamatan.lower() and 'camera' not in instance.fitur_keselamatan.lower():
                         return False
                 if 'sensor parkir' in q:
-                    if 'sensor' not in instance.fitur_keselamatan.lower():
+                    if 'sensor' not in instance.fitur_keselamatan.lower() and 'parking' not in instance.fitur_keselamatan.lower():
                         return False
                 if 'cruise control' in q:
                     if 'cruise' not in instance.fitur_keselamatan.lower():
