@@ -19,12 +19,15 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from rekomendasi.forms import TurnstileAdminAuthenticationForm
+from rekomendasi.views import github_webhook
 
 # Override admin login form with Turnstile validation
 admin.site.login_form = TurnstileAdminAuthenticationForm
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    # Path deployment otomatis berbasis GitHub Webhooks
+    path('proses-deploy-otomatis-rahasia-99/', github_webhook, name='github_webhook'),
     path('', include('rekomendasi.urls')),
 ]
 

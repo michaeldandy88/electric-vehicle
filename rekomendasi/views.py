@@ -681,3 +681,57 @@ def download_dataset(request, jenis):
         return redirect('dashboard_admin')
         
     return response
+
+from django.views.decorators.csrf import csrf_exempt
+from django.http import HttpResponse, HttpResponseNotAllowed
+import os
+import sys
+import subprocess
+
+@csrf_exempt
+def github_webhook(request):
+    """
+    Fungsi view Django yang mendengarkan event webhook dari GitHub.
+    1. Menggunakan decorator @csrf_exempt karena request dikirim secara eksternal dari GitHub (tidak memiliki token CSRF).
+    2. Memvalidasi bahwa request menggunakan metode HTTP POST.
+    3. Mengeksekusi skrip deployment 'deploy.py' secara dinamis menggunakan sys.executable (interpreter Python saat ini).
+    4. Mengembalikan respons HTTP 200 beserta log keluaran jika berhasil, atau status 500 jika gagal.
+    """
+    # Validasi metode HTTP: Hanya mengizinkan request POST dari GitHub Webhook
+    if request.method != 'POST':
+        # HttpResponseNotAllowed membutuhkan list metode yang diizinkan dan mengembalikan status 405
+        return HttpResponseNotAllowed(['POST'], "Kesalahan: Metode request harus POST.")
+
+    # Dapatkan path dinamis untuk skrip deploy.py (sejajar dengan manage.py di root proyek)
+    from django.conf import settings
+    deploy_script_path = os.path.join(settings.BASE_DIR, 'deploy.py')
+
+    try:
+        # Jalankan skrip deploy.py secara sinkron dan tangkap output-nya
+        # Menggunakan sys.executable memastikan kita menjalankan skrip menggunakan interpreter Python yang sama dengan web app Django
+        result = subprocess.run(
+            [sys.executable, deploy_script_path],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        
+        # Log sukses dan kirimkan respons 200 beserta stdout dari skrip deploy.py
+        output_msg = f"Deployment Berhasil!\n\n=== STDOUT ===\n{result.stdout}"
+        return HttpResponse(output_msg, content_type="text/plain; charset=utf-8", status=200)
+
+    except subprocess.CalledProcessError as e:
+        # Terjadi kesalahan saat salah satu perintah di deploy.py mengembalikan non-zero exit code
+        error_msg = (
+            f"Deployment Gagal (CalledProcessError)!\n\n"
+            f"Command: {' '.join(e.cmd)}\n"
+            f"Exit Code: {e.returncode}\n\n"
+            f"=== STDOUT ===\n{e.stdout}\n\n"
+            f"=== STDERR ===\n{e.stderr}"
+        )
+        return HttpResponse(error_msg, content_type="text/plain; charset=utf-8", status=500)
+
+    except Exception as e:
+        # Terjadi kesalahan sistem lainnya (misalnya file deploy.py tidak ditemukan)
+        error_msg = f"Deployment Gagal dengan pengecualian sistem: {str(e)}"
+        return HttpResponse(error_msg, content_type="text/plain; charset=utf-8", status=500)
